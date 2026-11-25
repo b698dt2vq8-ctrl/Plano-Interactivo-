@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de máquinas – croquis</title>
+<style>
+  :root{ --ink:#1E2B34; --paper:#DDE1E3; --sel:#0B6BCB; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;}
+  header{padding:14px 18px 6px}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header p{margin:2px 0 0;font-size:13px;color:#51606b}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:14px;padding:10px 18px 24px;align-items:start}
+  .plan{background:#fff;border:1px solid #c4cbd0;border-radius:6px;padding:6px;overflow-x:auto}
+  svg#plan{width:100%;min-width:760px;height:auto;display:block}
+  .eq{cursor:pointer;outline:none}
+  .eq .hit{fill:transparent;stroke:transparent;stroke-width:2}
+  .eq:hover .hit,.eq:focus-visible .hit{stroke:#8aa4b8;stroke-dasharray:4 3}
+  .eq.sel .hit{stroke:var(--sel);stroke-width:3;stroke-dasharray:none;fill:rgba(11,107,203,.10)}
+  .eq.pend .shape *{stroke-dasharray:5 3}
+  .lbl{font-size:15px;font-weight:600;fill:var(--ink);pointer-events:none}
+  .grp{font-size:15px;font-style:italic;fill:#51606b}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 4px 4px;font-size:13px;color:#33424d}
+  .legend .lg{display:flex;align-items:center;gap:6px}
+  aside{background:#fff;border:1px solid #c4cbd0;border-radius:6px;padding:14px 16px;position:sticky;top:10px}
+  aside h2{margin:0 0 2px;font-size:17px}
+  aside .code{font-size:13px;color:#51606b;margin-bottom:10px}
+  aside dl{margin:0;font-size:14px}
+  aside dt{font-size:12px;color:#6a7780;margin-top:10px}
+  aside dd{margin:1px 0 0}
+  aside .empty{font-size:14px;color:#51606b;line-height:1.45}
+  .note{margin-top:12px;padding-top:10px;border-top:1px solid #e1e5e8;font-size:12px;color:#6a7780}
+  @media (max-width:820px){ main{grid-template-columns:1fr} aside{position:static} }
+  /* vista del panel */
+  #modal{position:fixed;inset:0;background:rgba(20,28,34,.58);display:none;z-index:50;padding:14px;overflow:auto}
+  #modal.open{display:block}
+  .mbox{background:#fff;border-radius:10px;max-width:1000px;margin:0 auto;padding:14px 16px 18px}
+  .mhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .mhead h2{margin:0;font-size:18px}
+  .mhead button{border:0;background:#e9edf0;border-radius:8px;font-size:18px;width:38px;height:38px;cursor:pointer}
+  .mtabs{display:flex;gap:8px;margin:12px 0}
+  .mtabs button{flex:1;border:1px solid #c4cbd0;background:#f3f5f6;border-radius:8px;padding:9px 6px;font-size:15px;cursor:pointer;color:#33424d}
+  .mtabs button.on{background:#1E2B34;color:#fff;border-color:#1E2B34}
+  .mbody{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
+  #mview{background:#eef0f1;border-radius:8px;padding:8px;display:flex;justify-content:center}
+  #mview svg{width:100%;height:auto;max-height:68vh}
+  #minfo{border:1px solid #d4dadd;border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.45}
+  #minfo h3{margin:0 0 6px;font-size:16px}
+  #minfo p{margin:0 0 6px}
+  #minfo .small{font-size:12px;color:#6a7780}
+  .part{cursor:pointer;outline:none}
+  .part .phit{fill:transparent;stroke:transparent;stroke-width:2}
+  .part:hover .phit,.part:focus-visible .phit{stroke:#8aa4b8;stroke-dasharray:4 3}
+  .part.sel .phit{stroke:#0B6BCB;stroke-width:3;stroke-dasharray:none;fill:rgba(11,107,203,.12)}
+  @media (max-width:820px){ .mbody{grid-template-columns:1fr} #modal{padding:0} .mbox{border-radius:0;min-height:100%} }
+  .mback{border:1px solid #c4cbd0;background:#fff;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:8px;cursor:pointer;color:#1E2B34}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sala de máquinas</h1>
+  <p>Toca un equipo para ver su ficha. Los de trazo discontinuo están pendientes de confirmar.</p>
+</header>
+<main>
+  <div class="plan">
+    <svg id="plan" viewBox="0 0 1100 877" role="img" aria-label="Croquis de la sala de máquinas">
+      <defs>
+        <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+          <line x1="0" y1="0" x2="0" y2="10" stroke="#51606b" stroke-width="2.5"/>
+        </pattern>
+      </defs>
+
+      <!-- sala en forma de L (la esquina de arriba a la izquierda queda fuera) -->
+      <polygon points="275,20 1080,20 1080,857 20,857 20,446 275,446" fill="#F1EEEA" stroke="#1E2B34" stroke-width="5" stroke-linejoin="round"/>
+
+      <!-- muro rayado (no es parte de la sala, no clicable) -->
+      <rect x="880" y="508" width="198" height="35" fill="url(#hatch)" stroke="#1E2B34" stroke-width="2"/>
+
+      <!-- cuarto de limpieza (se abre por fuera; no es parte de la sala, no clicable) -->
+      <rect x="643" y="764" width="165" height="93" fill="#E3E0DC" stroke="#1E2B34" stroke-width="2"/>
+      <text class="grp" x="725" y="806" text-anchor="middle">Cuarto de limpieza</text>
+      <text class="grp" x="725" y="826" text-anchor="middle" style="font-size:13px">(abre por fuera)</text>
+
+      <!-- puerta (base sobre la pared de abajo) -->
+      <path d="M384 779 A78 78 0 0 1 462 857 L384 857 Z" fill="#fff" stroke="#1E2B34" stroke-width="2.5"/>
+      <text class="grp" x="392" y="846">Puerta</text>
+
+      <g id="items"></g>
+      <path d="M643 668 L643 663 L808 663 L808 668" fill="none" stroke="#1E2B34" stroke-width="2"/>
+      <text class="lbl" x="725" y="652" text-anchor="middle" style="font-size:17px">PGD</text>
+    </svg>
+    <div class="legend" id="legend"></div>
+  </div>
+  <aside id="panel" aria-live="polite">
+    <p class="empty">Haz clic en una bomba, panel, tanque o cualquier otro equipo para ver su información.</p>
+  </aside>
+</main>
+
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="mbox">
+    <div class="mhead"><h2 id="mtitle"></h2><button id="mclose" aria-label="Cerrar">✕</button></div>
+    <div class="mtabs">
+      <button data-tab="out" class="on">Por fuera</button>
+      <button data-tab="door" style="display:none">Detrás de la puerta</button>
+      <button data-tab="in">Por dentro</button>
+    </div>
+    <div class="mbody">
+      <div id="mview"></div>
+      <div id="minfo"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const INK = "#1E2B34", COLD = "#2F6FB5", HOT = "#D23B2E";
+const st = `stroke="${INK}" stroke-width="2"`;
+const GP = "Primaria de H₂O fría", GS = "Secundaria de H₂O fría";
+const SIN_NUM = "En el plano todavía no tiene número.";
+const PGD_NOTA = "Los 3 paneles juntos forman el PGD y a la vez son paneles de control. Código de cada panel por definir.";
+const PLACA_MOTOR = [
+  ["Fabricante","Grundfos (Bjerringbro, Dinamarca)"],
+  ["Modelo del motor","MG160LB4-42FF300-H3 · trifásico, 4 polos"],
+  ["Nº de motor","87420012"],
+  ["Nº de serie","6562 (de la placa fotografiada)"],
+  ["Potencia","15,0 kW"],
+  ["Conexión","D/Y (triángulo / estrella)"],
+  ["A 50 Hz","220–240 V (D) / 380–415 V (Y) · 50,0–48,5 A (D) / 29,0–28,0 A (Y) · 1460–1470 rpm · cos φ 0,86–0,82 · IE3 92,1 %"],
+  ["A 60 Hz","220–277 V (D) / 380–480 V (Y) · 50,0–42,0 A (D) / 29,0–24,2 A (Y) · 1760–1770 rpm · cos φ 0,88–0,81 · IE2 91,0 % – IE3 93,0 %"],
+  ["Corriente máxima","50 Hz: 55,5–53,5 A (D) / 32,0–31,0 A (Y) · 60 Hz: 55,5–46,0 A (D) / 32,0–26,6 A (Y)"],
+  ["Servicio / norma","S1 · IEC 60034"],
+  ["Clase térmica / protección","Clase F · IP55 · protector PTC 160 °C"],
+  ["Peso","131 kg"],
+  ["Rodamientos","6309.Z.C4 (lado accionamiento y lado opuesto)"],
+  ["Grasa","UNIREX N3, 13 g · cada 10 000 h a 40 °C o cada 2 500 h a 60 °C"],
+  ["Código de producción","1748"],
+  ["Origen","Hecho en Hungría"]
+];
+const NOTA_PLACA = "Datos de la placa del motor. Falta la placa de la bomba (caudal y altura). El nº de serie es el de la placa fotografiada; falta confirmar a cuál bomba corresponde.";
+const PLACA_CALENTADOR = [
+  ["Fabricante","Sedical, S.A. (Sondika, Bizkaia, España)"],
+  ["Tipo","UFP-61/16 MH"],
+  ["Nº de fabricación","49095/18 (de la placa fotografiada)"],
+  ["Potencia","200 kW"],
+  ["Distancia interior de apriete (A)","40,80 mm"],
+  ["Fluido","Agua en los dos circuitos"],
+  ["Circuito 1","Presión máx. 10 bar · temp. máx. 110 °C · trabajo 80 °C entrada / 70 °C salida · conexiones F1 (entrada) – F4 (salida)"],
+  ["Circuito 2","Presión máx. 10 bar · temp. máx. 110 °C · trabajo 20 °C entrada / 60 °C salida · conexiones F3 (entrada) – F2 (salida)"],
+  ["Normativa","Fabricado según la DEP 2014/68/UE, artículo 4.3"],
+  ["Avisos de la placa","No montarlo con una distancia de apriete (A) menor a la indicada; si tiene fugas al apretar a esa medida, contactar al suministrador. La puesta en marcha debe hacerse sin golpes de ariete."],
+  ["Contacto del fabricante","Pol. Ind. Berreteaga, Pab. 12 · tel. 944 710 460 · sedical@sedical.com"]
+];
+const NOTA_CALENTADOR = "Datos de la placa del intercambiador. Por las temperaturas, el circuito 1 (80/70 °C) parece el primario y el circuito 2 (20/60 °C) el secundario, donde el agua se calienta de 20 a 60 °C. Los stickers del equipo dicen «entrada/salida primario» y «entrada/salida secundario». El nº de fabricación es el de la placa fotografiada; falta confirmar a cuál calentador corresponde.";
+
+/* ---------- Datos de los equipos (editar aquí) ---------- */
+function P(id,x,y,w,extra){return Object.assign({id,t:"pump",x,y,w,h:w,lp:"r",tipo:"Bomba"},extra)}
+const PGD_NOTA1 = "Primera puerta del PGD contando de derecha a izquierda, de frente al PGD. Los 3 paneles juntos forman el PGD y a la vez son paneles de control. Se abre una vista por fuera, detrás de la puerta y por dentro.";
+function PGD(n,x){return {id:"PGD-"+n, lbl:"PC-", t:"pc", vista:(n===1?1:undefined), x, y:709, w:55, h:55, lp:"a", lo:5, nombre:"PGD – panel "+n+" de 3", tipo:"Panel de control (parte del PGD)", grupo:"PGD", marca:"Schneider Electric", notas:(n===1?PGD_NOTA1:PGD_NOTA)}}
+
+const items = [
+  /* Secundaria de H2O fría (columna) */
+  P("B-09",316,32,64,{grupo:GS,nombre:"Bomba 9"}),
+  P("B-08",316,109,64,{grupo:GS,nombre:"Bomba 8"}),
+  P("B-07",316,186,64,{grupo:GS,nombre:"Bomba 7"}),
+  P("B-06",316,263,64,{grupo:GS,nombre:"Bomba 6"}),
+  P("B-05",316,340,64,{grupo:GS,nombre:"Bomba 5"}),
+  P("B-04",316,417,64,{grupo:GS,nombre:"Bomba 4"}),
+
+  /* Columna de los calentadores: B-11, 3 calentadores, B-10 y 2 paneles */
+  P("B-11",538,153,64,{lp:"l",nombre:"Bomba 11",notas:"Está arriba de los calentadores."}),
+  {id:"C-01", t:"heater", x:543,y:225,w:55,h:55, lp:"l", nombre:"Calentador 1", tipo:"Calentador (intercambiador de placas)", marca:"Sedical UFP-61/16 MH, 200 kW", datos:PLACA_CALENTADOR, notas:NOTA_CALENTADOR},
+  {id:"C-02", t:"heater", x:543,y:289,w:55,h:55, lp:"l", nombre:"Calentador 2", tipo:"Calentador (intercambiador de placas)", marca:"Sedical UFP-61/16 MH, 200 kW", datos:PLACA_CALENTADOR, notas:NOTA_CALENTADOR},
+  {id:"C-03", t:"heater", x:543,y:353,w:55,h:55, lp:"l", nombre:"Calentador 3", tipo:"Calentador (intercambiador de placas)", marca:"Sedical UFP-61/16 MH, 200 kW", datos:PLACA_CALENTADOR, notas:NOTA_CALENTADOR},
+  P("B-10",538,417,64,{lp:"l",nombre:"Bomba 10",notas:"Está debajo de los calentadores."}),
+  {id:"PC-a1", lbl:"PC-", t:"pc", pend:1, x:543,y:495,w:55,h:55, lp:"l", nombre:"Panel de control sin número (1 de 2)", tipo:"Panel de control", notas:SIN_NUM},
+  {id:"PC-a2", lbl:"PC-", t:"pc", pend:1, x:543,y:551,w:55,h:55, lp:"l", nombre:"Panel de control sin número (2 de 2)", tipo:"Panel de control", notas:SIN_NUM},
+
+  /* Tanques */
+  {id:"T-01", t:"tank", x:621,y:181,w:98,h:440, nombre:"Tanque 1", tipo:"Tanque de agua"},
+  {id:"T-03", t:"tank", x:726,y:181,w:98,h:216, nombre:"Tanque 3", tipo:"Tanque de agua"},
+  {id:"T-02", t:"tank", x:726,y:405,w:98,h:216, nombre:"Tanque 2", tipo:"Tanque de agua"},
+
+  /* Sistema contra incendios */
+  {id:"MD-01", t:"diesel", x:904,y:93,w:136,h:132, lp:"l", nombre:"Motobomba contra incendios", tipo:"Motobomba diésel del sistema contra incendios", notas:"Motor diésel con radiador y batería de arranque."},
+  {id:"TCI", t:"tank", x:919,y:229,w:104,h:46, nombre:"Tanque contra incendio", tipo:"Tanque contra incendio (TCI)"},
+
+  /* Bombas de la derecha */
+  P("B-15",1018,334,54,{lp:"l",nombre:"Bomba 15"}),
+  P("B-14",1018,392,54,{lp:"l",nombre:"Bomba 14"}),
+  P("B-13",979,452,54,{lp:"as",nombre:"Bomba 13"}),
+  P("B-12",904,452,54,{lp:"l",nombre:"Bomba 12"}),
+
+  /* Descalcificadores */
+  {id:"DC-01", t:"trileft", col:HOT, x:972,y:590,w:75,h:92, lp:"b", nombre:"Descalcificador de agua caliente", tipo:"Descalcificador de agua caliente", notas:"Código provisional."},
+  {id:"DA-01", t:"tri", col:COLD, x:883,y:731,w:77,h:77, lp:"b", nombre:"Descalcificador de agua fría", tipo:"Descalcificador de agua fría", notas:"Código provisional."},
+
+  /* PGD: 3 paneles de control juntos */
+  PGD(1,643), PGD(2,698), PGD(3,753),
+
+  /* Paneles junto a la entrada */
+  {id:"PC-04", lbl:"PC-04", t:"pc", vista:1, x:518,y:799,w:55,h:56, lp:"a", nombre:"Panel de control PC-04", tipo:"Panel de control con variador de frecuencia", marca:"ABB (variador)", notas:"Está a la derecha de la puerta, junto a PC-05. Se abre una vista del panel por fuera y por dentro."},
+  {id:"PC-05", lbl:"PC-05", t:"pc", vista:1, x:573,y:799,w:55,h:56, lp:"a", nombre:"Panel de control PC-05", tipo:"Panel de control con variador de frecuencia", marca:"ABB (variador)", notas:"Está a la derecha de la puerta, junto a PC-04. Se abre una vista del panel por fuera y por dentro."},
+
+  /* Primaria de H2O fría + paneles (filas alineadas) */
+  P("B-03",119,545,66,{grupo:GP,nombre:"Bomba 3",marca:"Grundfos (motor MG160LB4-42FF300-H3, 15 kW)",datos:PLACA_MOTOR,notas:NOTA_PLACA}),
+  P("B-02",119,642,66,{grupo:GP,nombre:"Bomba 2",marca:"Grundfos (motor MG160LB4-42FF300-H3, 15 kW)",datos:PLACA_MOTOR,notas:NOTA_PLACA}),
+  P("B-01",119,739,66,{grupo:GP,nombre:"Bomba 1",marca:"Grundfos (motor MG160LB4-42FF300-H3, 15 kW)",datos:PLACA_MOTOR,notas:NOTA_PLACA}),
+  {id:"PC-03", t:"pc", vista:1, x:44,y:548,w:60,h:60, lp:"b", nombre:"Panel de control PC-03", tipo:"Panel de control de bombas (con variador)", marca:"Danfoss (variador)", grupo:GP, notas:"Maneja 2 bombas: «Bomba N°1» y «Bomba N°2». Se abre una vista del panel por fuera y por dentro."},
+  {id:"PC-02", t:"pc", vista:1, x:44,y:645,w:60,h:60, lp:"b", nombre:"Panel de control PC-02", tipo:"Panel de control de bombas (con variador)", marca:"Danfoss (variador)", grupo:GP, notas:"Maneja 2 bombas: «Bomba N°1» y «Bomba N°2». Se abre una vista del panel por fuera y por dentro."},
+  {id:"PC-01", t:"pc", vista:1, x:44,y:742,w:60,h:60, lp:"b", nombre:"Panel de control PC-01", tipo:"Panel de control de bombas (con variador)", marca:"Danfoss (variador)", grupo:GP, notas:"Maneja 2 bombas: «Bomba N°1» y «Bomba N°2». Se abre una vista del panel por fuera y por dentro."}
+];
+
+/* ---------- Símbolos ---------- */
+function pumpCircle(cx,cy,r){
+  const k=r/19;
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" ${st}/>
+    <polygon points="${cx-8*k},${cy-10*k} ${cx-8*k},${cy+10*k} ${cx+11*k},${cy}" fill="${INK}"/>`;
+}
+function xcell(x,y,w,h){
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" ${st}/>
+    <line x1="${x}" y1="${y}" x2="${x+w}" y2="${y+h}" ${st}/><line x1="${x+w}" y1="${y}" x2="${x}" y2="${y+h}" ${st}/>`;
+}
+const shapes = {
+  pump:i=>pumpCircle(i.w/2,i.h/2,i.w/2-1),
+  pc:i=>xcell(0,0,i.w,i.h),
+  heater:i=>{const m=Math.max(8,i.w*0.17),r=Math.max(2.5,i.w*0.06);
+    const c=(x,y)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" ${st}/>`;
+    return `<rect width="${i.w}" height="${i.h}" fill="#fff" ${st}/>${c(m,m)}${c(i.w-m,m)}${c(m,i.h-m)}${c(i.w-m,i.h-m)}`;},
+  tank:i=>`<rect width="${i.w}" height="${i.h}" rx="${Math.min(18,i.w*0.25)}" fill="#fff" ${st}/>
+    <text x="${i.w/2}" y="${i.h/2+6}" text-anchor="middle" font-size="${i.h>60?20:18}" font-weight="600" fill="${INK}">${i.id||""}</text>`,
+  diesel:i=>{const cy=i.h*0.48,cx=i.w*0.74,r=Math.max(10,i.w*0.1),ix=i.w*0.08,iw=i.w*0.43;
+    return `<rect width="${i.w}" height="${i.h}" fill="#fff" ${st}/>
+    <rect x="${ix}" y="${i.h*0.08}" width="${iw}" height="${i.h*0.84}" fill="#fff" ${st}/>
+    <text x="${ix+iw/2}" y="${cy+8}" text-anchor="middle" font-size="24" font-weight="600" fill="${INK}">D</text>
+    <line x1="${ix+iw}" y1="${cy}" x2="${cx-r}" y2="${cy}" ${st}/>
+    ${pumpCircle(cx,cy,r)}`;},
+  tri:i=>`<polygon points="0,${i.h} ${i.w},${i.h} ${i.w/2},0" fill="#fff" ${st}/>
+    <text x="${i.w/2}" y="${i.h-8}" text-anchor="middle" font-size="${Math.max(12,i.h*0.36)}" font-weight="700" fill="${i.col}">D</text>`,
+  trileft:i=>`<polygon points="${i.w},0 ${i.w},${i.h} 0,${i.h/2}" fill="#fff" ${st}/>
+    <text x="${i.w*0.64}" y="${i.h/2+Math.max(12,i.w*0.36)*0.35}" text-anchor="middle" font-size="${Math.max(12,i.w*0.36)}" font-weight="700" fill="${i.col}">D</text>`
+};
+
+/* ---------- Dibujo ---------- */
+function label(i){
+  const t = (i.lbl===undefined) ? i.id : i.lbl;
+  if(!t) return "";
+  const pos = {
+    r:`x="${i.w+8}" y="${i.h/2+5}" text-anchor="start"`,
+    l:`x="-8" y="${i.h/2+5}" text-anchor="end"`,
+    a:`x="${i.w/2}" y="${-(i.lo||8)}" text-anchor="middle"`,
+    as:`x="0" y="-8" text-anchor="start"`,
+    b:`x="${i.w/2}" y="${i.h+18}" text-anchor="middle"`
+  }[i.lp||"b"];
+  return `<text class="lbl" ${pos}>${t}</text>`;
+}
+const root = document.getElementById("items");
+root.innerHTML = items.map(i=>{
+  const noLabel = i.t==="tank";
+  return `
+  <g class="eq${i.pend?" pend":""}" data-id="${i.id}" tabindex="0" role="button"
+     aria-label="${i.nombre}" transform="translate(${i.x},${i.y})">
+    <rect class="hit" x="-6" y="-6" width="${i.w+12}" height="${i.h+12}" rx="4"/>
+    <g class="shape">${shapes[i.t](i)}</g>
+    ${noLabel?"":label(i)}
+  </g>`;}).join("");
+
+/* ---------- Leyenda ---------- */
+const leg = [
+  ["Bombas",     {t:"pump",w:30,h:30}],
+  ["Pizarra de control", {t:"pc",w:26,h:26}],
+  ["Calentadores", {t:"heater",w:28,h:28}],
+  ["Tanques de agua", {t:"tank",w:20,h:32,id:""}],
+  ["Descalcificador de agua fría", {t:"tri",w:30,h:28,col:COLD}],
+  ["Descalcificador de agua caliente", {t:"trileft",w:30,h:30,col:HOT}]
+];
+document.getElementById("legend").innerHTML = leg.map(([n,o])=>
+  `<span class="lg"><svg width="${o.w+6}" height="${o.h+6}" viewBox="-3 -3 ${o.w+6} ${o.h+6}">${shapes[o.t](o)}</svg>${n}</span>`).join("");
+
+/* ---------- Ficha al hacer clic ---------- */
+const panel = document.getElementById("panel");
+function show(id){
+  const i = items.find(e=>e.id===id);
+  const code = (i.lbl===undefined || i.lbl==="") ? i.id : i.lbl;
+  document.querySelectorAll(".eq").forEach(g=>g.classList.toggle("sel", g.dataset.id===id));
+  panel.innerHTML = `
+    <h2>${i.nombre}</h2>
+    <div class="code">${i.pend?"Sin código":code}</div>
+    <dl>
+      <dt>Tipo</dt><dd>${i.tipo}</dd>
+      ${i.grupo?`<dt>Grupo</dt><dd>${i.grupo}</dd>`:""}
+      <dt>Marca / modelo</dt><dd>${i.marca||"—"}</dd>
+      ${i.datos?i.datos.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join(""):""}
+      <dt>Estado</dt><dd>Sin datos todavía</dd>
+      <dt>Observaciones</dt><dd>${i.notas||"—"}</dd>
+    </dl>
+    <div class="note">${i.pend?"Pendiente de confirmar. ":""}Aquí irá la información real de cada equipo.</div>`;
+  if(i.vista) openPanel(i);
+}
+root.addEventListener("click",e=>{const g=e.target.closest(".eq"); if(g) show(g.dataset.id);});
+root.addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key===" "){const g=e.target.closest(".eq"); if(g){e.preventDefault(); show(g.dataset.id);}}
+});
+/* ---------- Vista del panel: por fuera y por dentro ---------- */
+const PARTS = {
+  out_puerta:{n:"Puerta del panel",d:"Puerta frontal de la pizarra de control. Detrás está el variador de frecuencia."},
+  out_marcha:{n:"Luz verde «MARCHA»",d:"Se enciende cuando el equipo está en marcha."},
+  out_fallo:{n:"Luz roja «FALLO»",d:"Se enciende cuando el equipo tiene una falla o alarma."},
+  out_moa:{n:"Selector «M.O.A»",d:"Selector de 3 posiciones. Por la etiqueta, lo más probable es Manual – 0 (apagado) – Automático.",pend:1},
+
+  in_sup:{n:"Compartimento superior",d:"Caja de arriba con puerta transparente y mucho cableado (cables azules y blancos hacia las borneras). En la foto solo se ve una parte.",pend:1},
+  in_verde:{n:"Equipo de carcasa verde",d:"Equipo con carcasa verde, arriba a la derecha. No se ve completo en la foto.",pend:1},
+  in_fan:{n:"Ventilador",d:"Ventilador con su caja, para enfriar el interior del panel."},
+  in_vfd1:{n:"Variador de frecuencia (izquierda)",d:"Variador ABB de la serie HVAC. Regula la velocidad del motor de una bomba. Tiene pantalla y teclado al frente y la entrada de cables por abajo.",pend:1},
+  in_vfd2:{n:"Variador de frecuencia (derecha)",d:"Variador ABB de la serie HVAC, igual al de la izquierda. Tiene pantalla y teclado al frente.",pend:1},
+  in_rele:{n:"Módulo con luz azul",d:"Pequeño módulo con un LED azul encendido, entre los dos variadores. En los paneles 1, 2 y 3 hay uno igual que dice 63 VA (parece una fuente o transformador); aquí falta confirmarlo.",pend:1},
+  in_din:{n:"Interruptores y relés en riel",d:"Pequeños interruptores y relés montados en riel DIN, en el centro."},
+  in_canal1:{n:"Canaleta",d:"Canaleta gris por donde pasan los cables entre los variadores y los equipos de abajo."},
+  in_protIzq:{n:"Protección y maniobra (izquierda)",d:"Grupo con un interruptor automático, un contactor o guardamotor y una regleta, del lado izquierdo.",pend:1},
+  in_protDer:{n:"Protección y maniobra (derecha)",d:"Mismo grupo de protección y maniobra, del lado derecho.",pend:1},
+  in_canal2:{n:"Canaleta inferior",d:"Segunda canaleta con los cables que bajan hacia las borneras."},
+  in_bornIzq:{n:"Borneras (izquierda)",d:"Regleta de conexión para los cables que salen del panel."},
+  in_bornDer:{n:"Borneras (derecha)",d:"Regleta de conexión para los cables que salen del panel."},
+  in_cont:{n:"Contactor central",d:"Contactor en el centro de abajo, con cables verde-amarillo (tierra).",pend:1},
+  in_tierra:{n:"Barra de tierra",d:"Barra metálica donde se conectan los cables de tierra."},
+  in_rojoIzq:{n:"Cable rojo enrollado",d:"Cable rojo sobrante, enrollado en el fondo del panel."},
+  in_rojoDer:{n:"Cable rojo enrollado",d:"Cable rojo sobrante, enrollado en el fondo del panel."},
+  in_caja:{n:"Caja blanca con etiqueta ABB",d:"Caja blanca en el fondo del panel. Parece un accesorio o documentación de ABB; falta identificarla.",pend:1},
+  in_puertas:{n:"Puertas abiertas",d:"Cara interior de las dos puertas del panel, con cable de tierra amarillo-verde."}
+};
+const SK = `stroke="${INK}" stroke-width="1.6"`;
+const pg = (k,b,inner)=>`<g class="part" data-k="${k}" tabindex="0" role="button" aria-label="${PARTS[k].n}"><rect class="phit" x="${b[0]-4}" y="${b[1]-4}" width="${b[2]+8}" height="${b[3]+8}" rx="4"/>${inner}</g>`;
+
+function vfd(k,x,y,w,h){
+  let keys="";
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++) keys+=`<circle cx="${x+w*0.22+c*w*0.14}" cy="${y+62+r*11}" r="3.2" fill="#cfd2d6" stroke="${INK}" stroke-width=".8"/>`;
+  let glands=""; for(let c=0;c<3;c++) glands+=`<rect x="${x+w*0.14+c*w*0.27}" y="${y+h-8}" width="${w*0.2}" height="9" fill="#2a3036"/>`;
+  return pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="#f5f4f0" ${SK}/>
+    <text x="${x+w*0.2}" y="${y+17}" font-size="12" font-weight="800" fill="#E1251B">ABB</text>
+    <rect x="${x+w*0.2}" y="${y+25}" width="${w*0.42}" height="24" rx="2" fill="#2a3036"/>
+    ${keys}
+    <polygon points="${x+w*0.6},${y+h*0.78} ${x+w*0.84},${y+h*0.78} ${x+w*0.72},${y+h*0.78-18}" fill="#F2C200" stroke="${INK}" stroke-width="1"/>${glands}`);
+}
+function prot(k,x,y,w,h){
+  return pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w*0.19}" height="${h}" fill="#f2f2f0" ${SK}/>
+    <rect x="${x+w*0.21}" y="${y}" width="${w*0.43}" height="${h}" fill="#2a3036" ${SK}/>
+    <rect x="${x+w*0.29}" y="${y+h*0.22}" width="${w*0.14}" height="${h*0.24}" fill="#2e9e5b"/>
+    <rect x="${x+w*0.67}" y="${y}" width="${w*0.33}" height="${h}" fill="#b9bdc1" ${SK}/>`);
+}
+function born(k,x,y,w,h){
+  let t=""; for(let c=1;c<Math.floor(w/7);c++) t+=`<line x1="${x+c*7}" y1="${y+2}" x2="${x+c*7}" y2="${y+h-2}" stroke="${INK}" stroke-width=".8"/>`;
+  return pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#efe6cf" ${SK}/>${t}`);
+}
+function duct(k,x,y,w,h){
+  let t=""; for(let c=1;c<Math.floor(w/9);c++) t+=`<line x1="${x+c*9}" y1="${y+4}" x2="${x+c*9}" y2="${y+h-4}" stroke="#6d7277" stroke-width="1.4"/>`;
+  return pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#9aa0a6" ${SK}/>${t}`);
+}
+function coil(k,x,y,w,h){
+  return pg(k,[x,y,w,h],[0,1,2,3].map(i=>`<ellipse cx="${x+w/2}" cy="${y+h/2}" rx="${w/2-i*7}" ry="${h/2-i*5}" fill="none" stroke="#D23B2E" stroke-width="3.2"/>`).join(""));
+}
+
+function viewOut(){
+  return `<svg viewBox="0 0 400 560" role="img" aria-label="Frente del panel de control">
+    ${pg("out_puerta",[20,20,360,520],`<rect x="20" y="20" width="360" height="520" rx="6" fill="#DAD7D1" ${SK}/>`)}
+    ${pg("out_marcha",[88,150,84,112],`<rect x="92" y="150" width="76" height="26" fill="#fff" ${SK}/>
+      <text x="130" y="168" text-anchor="middle" font-size="12" font-weight="700" fill="${INK}">MARCHA</text>
+      <circle cx="130" cy="225" r="32" fill="#1E8E6B" stroke="${INK}" stroke-width="3"/><circle cx="122" cy="216" r="9" fill="#fff" opacity=".35"/>`)}
+    ${pg("out_fallo",[228,150,84,112],`<rect x="232" y="150" width="76" height="26" fill="#fff" ${SK}/>
+      <text x="270" y="168" text-anchor="middle" font-size="12" font-weight="700" fill="#6a7780">FALLO</text>
+      <circle cx="270" cy="225" r="32" fill="#E4584B" stroke="${INK}" stroke-width="3"/><circle cx="262" cy="216" r="9" fill="#fff" opacity=".35"/>`)}
+    ${pg("out_moa",[150,335,100,130],`<rect x="165" y="335" width="70" height="26" fill="#fff" ${SK}/>
+      <text x="200" y="353" text-anchor="middle" font-size="12" font-weight="700" fill="${INK}">M.O.A</text>
+      <circle cx="200" cy="425" r="34" fill="#22282e" stroke="${INK}" stroke-width="3"/>
+      <rect x="192" y="395" width="16" height="48" rx="6" fill="#f2f2f0" transform="rotate(-8 200 425)"/>`)}
+  </svg>`;
+}
+function viewIn(){
+  const neg=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#2A3036" ${SK}/><rect x="${x+w*0.28}" y="${y+h*0.18}" width="${w*0.44}" height="${h*0.16}" fill="#2E9E5B"/>`;
+  const mod=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#B9BDC1" ${SK}/><circle cx="${x+w/2}" cy="${y+h/2}" r="${Math.min(w,h)*0.22}" fill="#2F6FB5" stroke="${INK}" stroke-width="1"/>`;
+  const blq=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/>${[0.22,0.5,0.78].map(f=>`<circle cx="${x+w*f}" cy="${y+h*0.5}" r="2.6" fill="#9AA0A6"/>`).join("")}`;
+  const grupo=(p,x0,y0,h,bx,bw)=>
+    pg("in_"+p+"_brk",[x0,y0,22,h],brk(x0,y0,22,h))+
+    pg("in_"+p+"_negA",[x0+24,y0,24,h],neg(x0+24,y0,24,h))+
+    pg("in_"+p+"_negB",[x0+50,y0,24,h],neg(x0+50,y0,24,h))+
+    pg("in_"+p+"_bloque",[bx,y0-2,bw,18],blq(bx,y0-2,bw,18))+
+    pg("in_"+p+"_mod",[bx,y0+18,bw,h-18],mod(bx,y0+18,bw,h-18));
+  return `<svg viewBox="0 120 600 530" role="img" aria-label="Interior del panel de control">
+    ${pg("in_puertas",[10,145,125,490],`<rect x="10" y="145" width="125" height="490" fill="#E0DED9" ${SK}/><rect x="505" y="145" width="90" height="490" fill="#E0DED9" ${SK}/>`)}
+    <rect x="140" y="135" width="360" height="500" fill="#C5C9CC" ${SK}/>
+    <rect x="150" y="145" width="340" height="480" fill="#AEB3B7" stroke="#8D9296" stroke-width="1"/>
+    ${pg("in_fan",[90,215,85,90],`<rect x="90" y="215" width="85" height="90" fill="#E9E7E2" ${SK}/><circle cx="132" cy="262" r="32" fill="#CFD3D6" ${SK}/>${[0,90,180,270].map(a=>`<ellipse cx="132" cy="246" rx="8" ry="15" fill="#8D9296" transform="rotate(${a} 132 262)"/>`).join("")}<circle cx="132" cy="262" r="6" fill="#2A3036"/>`)}
+    ${vfd("in_vfd1",168,195,108,183)}
+    ${vfd("in_vfd2",383,190,104,196)}
+    ${pg("in_rele",[290,300,36,36],`<rect x="290" y="300" width="36" height="36" rx="3" fill="#1D2229" ${SK}/><circle cx="302" cy="312" r="4.5" fill="#2C8CFF"/>`)}
+    ${pg("in_rc_qm",[279,340,18,38],brk(279,340,18,38)+tx(288,389,"QM",6.5,"#444"))}
+    ${pg("in_rc_fm",[299,340,12,38],brk(299,340,12,38)+tx(305,389,"FM",6.5,"#444"))}
+    ${pg("in_rc_k1",[314,340,16,38],neg(314,340,16,38)+tx(322,389,"K1",6.5,"#444"))}
+    ${pg("in_rc_k2",[333,340,16,38],neg(333,340,16,38)+tx(341,389,"K2",6.5,"#444"))}
+    ${pg("in_rc_gris",[352,340,28,38],`<rect x="352" y="340" width="28" height="38" fill="#B9BDC1" ${SK}/>`)}
+    ${duct("in_canal1",177,396,313,29)}
+    ${grupo("gi",179,430,56,257,40)}
+    ${grupo("gd",343,432,54,421,42)}
+    ${duct("in_canal2",188,492,278,26)}
+    ${pg("in_bi1",[196,522,34,26],bornRaw(196,522,34,26))}
+    ${pg("in_bi2",[232,522,34,26],bornRaw(232,522,34,26))}
+    ${pg("in_bd1",[390,526,32,28],bornRaw(390,526,32,28))}
+    ${pg("in_bd2",[424,526,32,28],bornRaw(424,526,32,28))}
+    ${pg("in_cont",[291,520,30,40],`<rect x="291" y="520" width="30" height="40" fill="#2A3036" ${SK}/>`)}
+    ${bar("in_tierra",255,568,100)}
+    ${pg("in_caja",[320,585,62,44],`<rect x="320" y="585" width="62" height="44" fill="#F7F7F5" ${SK}/><text x="351" y="611" text-anchor="middle" font-size="10" font-weight="800" fill="#E1251B">ABB</text>`)}
+  </svg>`;
+}
+
+const modal=document.getElementById("modal"), mview=document.getElementById("mview"), minfo=document.getElementById("minfo");
+let tab="out";
+function setInfo(k){
+  const p=PARTS[k];
+  document.querySelectorAll("#mview .part").forEach(g=>g.classList.toggle("sel",g.dataset.k===k));
+  minfo.innerHTML=`<h3>${p.n}</h3><p>${p.d}</p>${p.pend?'<p class="small">Por confirmar.</p>':''}`;
+}
+function showTab(t){
+  inDrive=false;
+  tab=t;
+  const P=PANELS[curId];
+  document.querySelectorAll(".mtabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  mview.innerHTML = t==="out" ? P.out() : t==="door" ? P.door() : P.inn();
+  const lab=(P.labels&&P.labels[t]) || (t==="out"?"Frente del panel.":t==="door"?"Parte de atrás de la puerta.":"Interior de los dos paneles.");
+  minfo.innerHTML = `<p class="small">${lab} Toca una parte para ver qué es.</p>`;
+}
+let curId="PC-04";
+function openPanel(i){
+  curId=i.id;
+  document.querySelector('.mtabs button[data-tab="door"]').style.display = PANELS[i.id].door ? "" : "none";
+  document.getElementById("mtitle").textContent = i.nombre;
+  showTab("out"); modal.classList.add("open"); modal.scrollTop=0;
+}
+function closePanel(){ modal.classList.remove("open"); }
+document.getElementById("mclose").addEventListener("click",closePanel);
+modal.addEventListener("click",e=>{ if(e.target===modal) closePanel(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closePanel(); });
+document.querySelector(".mtabs").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) showTab(b.dataset.tab); });
+mview.addEventListener("click",e=>{ if(e.target.closest(".mback")){ showTab("in"); return; } const g=e.target.closest(".part"); if(g) activate(g); });
+mview.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ const g=e.target.closest(".part"); if(g){ e.preventDefault(); activate(g); } } });
+/* ===================== Paneles PC-01, PC-02 y PC-03 ===================== */
+const tx=(x,y,t,fs,fill,anc)=>`<text x="${x}" y="${y}" font-size="${fs||9}" font-weight="600" fill="${fill||INK}" text-anchor="${anc||"middle"}">${t}</text>`;
+const stk=(x,y,w,h,t,fs)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#9aa0a6" stroke-width=".8"/>${tx(x+w/2,y+h/2+(fs||8)*0.35,t,fs||8)}`;
+const pilot=(cx,cy,col,r=17)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" ${SK} stroke-width="2.4"/><circle cx="${cx-r*0.3}" cy="${cy-r*0.3}" r="${r*0.28}" fill="#fff" opacity=".35"/>`;
+const knob=(cx,cy,r=20)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#22282E" ${SK} stroke-width="2.4"/><rect x="${cx-3}" y="${cy-r*0.8}" width="6" height="${r*1.35}" rx="3" fill="#F2F2F0" transform="rotate(-8 ${cx} ${cy})"/>`;
+const grille=(k,x,y,w,h,lotec)=>pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="#EFECE4" ${SK}/><rect x="${x+w*0.12}" y="${y+h*0.12}" width="${w*0.76}" height="${h*0.7}" fill="#2A3036"/>${Array.from({length:9},(_,i)=>`<rect x="${x+w*0.12}" y="${y+h*0.12+i*h*0.078+h*0.02}" width="${w*0.76}" height="${h*0.035}" fill="#EFECE4"/>`).join("")}${lotec?tx(x+w*0.8,y+h-5,"LOTEC",8):""}`);
+const door=()=>pg("e_puerta",[10,10,380,580],`<rect x="10" y="10" width="380" height="580" rx="6" fill="#DAD7D1" ${SK}/>`);
+const hand=(x,y,t,fs)=>tx(x,y,t,fs||14,"#7d838a");
+
+/* ---------- Exterior ---------- */
+function outP1(){
+  const r=(y0,n)=>
+    pg("e_sel"+n,[40,y0,70,86],stk(40,y0,70,18,"AUT.-0-MAN.",8)+knob(75,y0+58,22))+
+    pg("e_av"+n,[118,y0,68,86],stk(118,y0,68,18,"AVERIA VARIADOR",6.5)+pilot(152,y0+58,"#E4584B"))+
+    pg("e_di"+n,[196,y0,62,86],stk(196,y0,62,18,"DISYUNTOR",7)+pilot(227,y0+58,"#E4584B"))+
+    pg("e_ma"+n,[272,y0,60,86],stk(272,y0,60,18,"MARCHA",7)+pilot(302,y0+58,"#1E8E6B"));
+  return `<svg viewBox="0 0 400 600" role="img" aria-label="Frente del panel 1">
+    ${door()}
+    ${pg("e_inv",[110,18,275,62],hand(145,46,"B3",22)+tx(300,36,"INV. 31030707-1",13)+tx(368,72,"1",28))}
+    ${grille("e_rej",105,74,120,108,1)}
+    ${stk(132,190,96,28,"HOTEL HICACOS",9)}
+    ${stk(137,230,86,20,"BOMBA N°1",9)}
+    ${r(262,1)}
+    ${stk(150,358,86,20,"BOMBA N°2",9)}
+    ${r(392,2)}
+    ${pg("e_selb",[85,498,200,90],stk(90,506,70,18,"BOMBA N°1",7.5)+hand(82,520,"I",12)+stk(200,500,70,18,"BOMBA N°2",7.5)+hand(284,516,"D",12)+knob(180,560,24))}
+  </svg>`;
+}
+function outP2(){
+  const g=(n,cx)=>
+    pg("e_av"+n,[cx-66,258,54,72],stk(cx-62,260,48,16,"AVERIA",7)+pilot(cx-38,308,"#E4584B",16))+
+    pg("e_ma"+n,[cx-2,258,60,72],stk(cx+2,260,52,16,"MARCHA",7)+pilot(cx+28,308,"#1E8E6B",16))+
+    pg("e_sel"+n,[cx-48,348,96,84],stk(cx-42,350,84,16,"AUT.-0-MAN.",7)+knob(cx,404,20));
+  return `<svg viewBox="0 0 400 600" role="img" aria-label="Frente del panel 2">
+    ${door()}
+    ${grille("e_rej",100,40,120,110,1)}
+    ${pg("e_num",[335,25,50,50],tx(362,62,"2",30))}
+    ${stk(112,160,126,26,"HOTEL SMARDT HICACOS",8)}
+    ${stk(60,222,92,22,"BOMBA N°1",8)}${hand(166,240,"I",13)}
+    ${stk(240,222,92,22,"BOMBA N°2",8)}${hand(346,240,"D",13)}
+    ${g(1,110)}${g(2,290)}
+    ${pg("e_peligro",[170,500,64,56],`<polygon points="202,504 232,554 172,554" fill="#F2C200" ${SK}/>${tx(202,545,"⚡",20)}`)}
+  </svg>`;
+}
+function outP3(){
+  const g=(n,x0)=>
+    stk(x0+10,198,92,22,"BOMBA N°"+n,8)+hand(x0+112,215,n==1?"I":"D",13)+
+    pg("e_ma"+n,[x0-2,232,56,76],stk(x0,234,52,16,"MARCHA",7)+pilot(x0+26,284,"#1E8E6B",16))+
+    pg("e_av"+n,[x0+58,232,56,76],stk(x0+60,234,52,16,"AVERIA",7)+pilot(x0+86,284,"#E4584B",16))+
+    pg("e_sel"+n,[x0+6,326,100,88],stk(x0+10,328,92,24,"BOMBA AUT.-0-MAN.",7)+knob(x0+56,390,20));
+  return `<svg viewBox="0 0 400 600" role="img" aria-label="Frente del panel 3">
+    ${door()}
+    ${grille("e_rej",105,24,130,116,0)}
+    ${pg("e_num",[335,25,50,50],tx(360,62,"3",30))}
+    ${g(1,45)}${g(2,215)}
+    ${grille("e_rej2",105,446,130,122,0)}
+    ${pg("e_qr",[343,500,40,52],`<rect x="345" y="502" width="36" height="48" fill="#fff" stroke="#9aa0a6"/>${[0,1,2,3].map(i=>[0,1,2].map(j=>`<rect x="${350+j*10}" y="${520+i*7}" width="6" height="5" fill="#333"/>`).join("")).join("")}`)}
+  </svg>`;
+}
+
+/* ---------- Piezas del interior ---------- */
+const brk=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/><rect x="${x+w*0.3}" y="${y+h*0.4}" width="${w*0.4}" height="${h*0.22}" fill="#2A3036"/><line x1="${x}" y1="${y+h*0.2}" x2="${x+w}" y2="${y+h*0.2}" stroke="#9AA0A6" stroke-width=".8"/>`;
+const rcd=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/><rect x="${x+w*0.55}" y="${y+h*0.38}" width="${w*0.28}" height="${h*0.2}" fill="#2F6FB5"/>`;
+const rly=(x,y,w,h,base)=>`<rect x="${x}" y="${y+h*0.4}" width="${w}" height="${h*0.6}" fill="${base||"#2A3036"}" ${SK}/><rect x="${x+1}" y="${y}" width="${w-2}" height="${h*0.45}" fill="#F7F4EC" ${SK}/><rect x="${x+w*0.2}" y="${y+h*0.12}" width="${w*0.6}" height="${h*0.12}" fill="#E8893A"/>`;
+const psuR=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#1D2229" ${SK}/><rect x="${x+w*0.12}" y="${y+h*0.2}" width="${w*0.76}" height="${h*0.6}" fill="#EDEBE6"/>${tx(x+w/2,y+h*0.58,"63VA",8)}<circle cx="${x+7}" cy="${y+7}" r="3.6" fill="#2C8CFF"/>`;
+const rail=(x,y,w)=>`<rect x="${x}" y="${y}" width="${w}" height="14" fill="#B7BBBF" stroke="${INK}" stroke-width="1"/>${Array.from({length:Math.floor(w/22)},(_,i)=>`<rect x="${x+8+i*22}" y="${y+4}" width="14" height="6" rx="3" fill="#7E848A"/>`).join("")}`;
+const bar=(k,x,y,w)=>pg(k,[x,y,w,14],`<rect x="${x}" y="${y}" width="${w}" height="14" fill="#C8A24A" ${SK}/>${Array.from({length:Math.floor(w/12)},(_,c)=>`<circle cx="${x+9+c*12}" cy="${y+7}" r="2.4" fill="#6F5A22"/>`).join("")}`);
+const wire=(d,col,w)=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||4}" stroke-linecap="round"/>`;
+function danfoss(k,x,y,w,h,tag){
+  const px=x+w*0.36, pw=w*0.62;
+  return pg(k,[x,y,w,h],`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#CDD0D3" ${SK}/>
+    <rect x="${px}" y="${y+h*0.02}" width="${pw}" height="${h*0.96}" rx="3" fill="#3A404A" ${SK}/>
+    <rect x="${px+pw*0.12}" y="${y+h*0.06}" width="${pw*0.76}" height="${h*0.07}" fill="#E8893A"/>
+    <circle cx="${px+pw/2}" cy="${y+h*0.28}" r="${Math.min(pw,h)*0.17}" fill="#CFD2D6" ${SK}/>${tx(px+pw/2,y+h*0.28+3,"OK",8)}
+    ${[0.22,0.5,0.78].map(f=>`<circle cx="${px+pw*f}" cy="${y+h*0.42}" r="${pw*0.06}" fill="#CFD2D6"/>`).join("")}
+    ${tx(px+pw/2,y+h*0.6,"VLT",Math.max(8,w*0.07),"#fff")}${tx(px+pw/2,y+h*0.66,"HVAC Basic Drive",Math.max(6,w*0.045),"#fff")}
+    ${tag?tx(x+8,y+13,tag,8,"#555","start"):""}`);
+}
+const bornRaw=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#EFE6CF" ${SK}/>${Array.from({length:Math.floor(w/7)-1},(_,c)=>`<line x1="${x+(c+1)*7}" y1="${y+2}" x2="${x+(c+1)*7}" y2="${y+h-2}" stroke="${INK}" stroke-width=".8"/>`).join("")}`;
+const shelf=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h||14}" fill="#C9C4B2" ${SK} stroke-width="1.2"/>`;
+
+/* ---------- Interior panel 1 (un variador, 2 guardamotores) ---------- */
+function inP1(){
+  return `<svg viewBox="0 0 600 600" role="img" aria-label="Interior del panel 1">
+    <rect x="10" y="10" width="580" height="580" rx="6" fill="#C3C7CA" ${SK}/>
+    ${shelf(195,20,225,14)}${shelf(195,112,225,16)}${shelf(195,222,225,16)}${shelf(195,336,225,14)}
+    <rect x="195" y="20" width="14" height="330" fill="#C9C4B2" ${SK} stroke-width="1.2"/><rect x="406" y="20" width="14" height="330" fill="#C9C4B2" ${SK} stroke-width="1.2"/>
+    ${danfoss("i_danfoss",30,70,135,260,"02U1")}
+    ${pg("i_psu",[210,36,76,72],psuR(210,36,76,72)+tx(248,118,"01T1",7,"#555"))}
+    ${rail(305,58,100)}
+    ${pg("i_rel4",[210,138,108,76],[0,1,2,3].map(i=>rly(212+i*26,140,22,70)).join("")+["02KA1","02KA2","02KA3","02KA4"].map((t,i)=>tx(223+i*26,226,t.slice(2),6.5,"#555")).join(""))}
+    ${rail(326,166,80)}
+    ${pg("i_ms116",[210,246,78,84],[0,1].map(i=>`<rect x="${212+i*38}" y="250" width="34" height="76" fill="#6B7078" ${SK}/><circle cx="${229+i*38}" cy="276" r="12" fill="#1A1D21"/><rect x="${227+i*38}" y="266" width="4" height="12" fill="#ddd"/>`).join("")+tx(229,342,"02QF1",6.5,"#555")+tx(267,342,"02QF2",6.5,"#555"))}
+    ${pg("i_brk1",[290,252,66,80],brk(292,256,30,72)+brk(326,256,26,72))}
+    ${rail(358,284,52)}
+    ${duct("i_duct",40,352,520,30)}
+    ${pg("i_brk3p",[198,398,52,80],brk(200,402,48,72)+`<line x1="216" y1="402" x2="216" y2="474" stroke="#9AA0A6"/><line x1="232" y1="402" x2="232" y2="474" stroke="#9AA0A6"/>`)}
+    ${pg("i_born",[258,414,172,46],bornRaw(258,424,172,36)+Array.from({length:24},(_,c)=>`<rect x="${261+c*7}" y="414" width="4" height="10" fill="#E8893A"/>`).join(""))}
+    ${rail(432,430,70)}
+    ${bar("i_tierra",270,490,96)}
+    ${pg("i_rst",[250,530,110,26],`<rect x="250" y="530" width="110" height="26" fill="#2A3036" ${SK}/>${tx(268,548,"R",14,"#fff")}${tx(305,548,"S",14,"#fff")}${tx(342,548,"T",14,"#fff")}`)}
+  </svg>`;
+}
+
+/* ---------- Interior panel 2 (dos variadores) ---------- */
+function inP2(){
+  return `<svg viewBox="0 0 600 540" role="img" aria-label="Interior del panel 2">
+    <rect x="10" y="10" width="580" height="520" rx="6" fill="#C3C7CA" ${SK}/>
+    ${shelf(205,150,200,14)}${shelf(205,224,200,14)}${shelf(205,322,200,14)}${shelf(205,440,200,14)}
+    <rect x="205" y="150" width="14" height="304" fill="#C9C4B2" ${SK} stroke-width="1.2"/><rect x="391" y="150" width="14" height="304" fill="#C9C4B2" ${SK} stroke-width="1.2"/>
+    ${danfoss("i2_vfdL",25,110,150,265,"02U1")}
+    ${danfoss("i2_vfdR",425,150,130,215,"")}
+    ${pg("i_psu",[222,170,48,54],psuR(222,170,48,54))}
+    ${pg("i2_brk1",[274,168,70,58],[0,1,2].map(i=>brk(276+i*24,170,22,52)).join(""))}
+    ${pg("i2_term",[352,170,40,50],`<rect x="352" y="170" width="38" height="48" fill="#DCDFE2" ${SK}/><circle cx="371" cy="194" r="12" fill="#fff" ${SK}/><line x1="371" y1="194" x2="378" y2="186" stroke="${INK}" stroke-width="2"/>`)}
+    ${pg("i2_brk2",[222,246,100,70],brk(224,250,26,62)+brk(252,250,26,62)+brk(290,250,26,62))}
+    ${pg("i2_rly",[330,246,62,70],rly(332,250,24,60,"#2F6FB5")+rly(362,250,24,60,"#2F6FB5"))}
+    ${pg("i2_nsx",[228,346,138,76],`<rect x="230" y="350" width="134" height="70" fill="#2A3036" ${SK}/><rect x="240" y="356" width="114" height="10" fill="#4a525c"/><circle cx="297" cy="392" r="15" fill="#111" stroke="#777" stroke-width="2"/><rect x="293" y="378" width="8" height="26" rx="3" fill="#EEE"/>`)}
+    ${bar("i_tierra",235,500,140)}
+    ${born("i2_bornL",50,466,125,38)}
+    ${born("i2_bornR",420,446,100,34)}
+  </svg>`;
+}
+
+/* ---------- Interior panel 3 (un variador, diferenciales, termostato) ---------- */
+function inP3(){
+  return `<svg viewBox="0 0 600 540" role="img" aria-label="Interior del panel 3">
+    <rect x="10" y="10" width="580" height="520" rx="6" fill="#C3C7CA" ${SK}/>
+    ${shelf(15,110,470,18)}${shelf(15,244,320,18)}${shelf(15,370,330,16)}
+    ${pg("i3_brk4",[26,26,104,78],[0,1,2,3].map(i=>brk(28+i*24,28,22,72)).join(""))}
+    ${pg("i3_azul",[146,20,90,78],`<rect x="150" y="22" width="82" height="74" fill="#4A90D9" ${SK}/><rect x="158" y="30" width="66" height="26" fill="#BBD6F2"/>${[0,1,2,3].map(i=>`<rect x="${156+i*18}" y="66" width="14" height="24" fill="#2B5E9E"/>`).join("")}`)}
+    ${rail(244,50,190)}
+    ${pg("i3_term",[440,34,40,56],`<rect x="442" y="36" width="36" height="52" fill="#DCDFE2" ${SK}/><circle cx="460" cy="58" r="11" fill="#fff" ${SK}/><line x1="460" y1="58" x2="466" y2="51" stroke="${INK}" stroke-width="2"/>`)}
+    ${pg("i3_brk2",[26,146,124,92],brk(30,150,56,84)+brk(90,150,56,84))}
+    ${pg("i3_rel",[166,142,76,88],rly(170,146,30,80)+rly(206,146,30,80))}
+    ${pg("i3_rcd",[26,272,142,98],rcd(30,276,64,90)+rcd(98,276,64,90))}
+    ${duct("i_duct",15,392,320,28)}
+    ${pg("i_born",[18,432,254,70],brk(22,436,48,62)+bornRaw(76,450,192,40))}
+    <rect x="350" y="170" width="230" height="340" fill="#AEB3B7" stroke="#8D9296"/>
+    ${danfoss("i3_vfd",378,205,196,270,"")}
+  </svg>`;
+}
+
+const PANELS={
+  "PC-01":{out:outP1,inn:inP1},
+  "PC-02":{out:outP2,inn:inP2},
+  "PC-03":{out:outP3,inn:inP3},
+  "PC-04":{out:viewOut,inn:viewIn},
+  "PC-05":{out:viewOut,inn:viewIn}
+};
+
+/* ---------- Textos de cada parte ---------- */
+[1,2].forEach(n=>{
+  PARTS["e_sel"+n]={n:"Selector AUT–0–MAN (Bomba N°"+n+")",d:"Selector de 3 posiciones de la Bomba N°"+n+": Automático – 0 (apagada) – Manual."};
+  PARTS["e_av"+n]={n:"Luz roja de avería (Bomba N°"+n+")",d:"Se enciende cuando hay una falla en la Bomba N°"+n+". En el panel 1 la etiqueta dice «AVERÍA VARIADOR»: falla del variador."};
+  PARTS["e_di"+n]={n:"Luz roja DISYUNTOR (Bomba N°"+n+")",d:"Solo está en el panel 1. Se enciende cuando se dispara el disyuntor (protección) de la Bomba N°"+n+"."};
+  PARTS["e_ma"+n]={n:"Luz verde MARCHA (Bomba N°"+n+")",d:"Se enciende cuando la Bomba N°"+n+" está en marcha."};
+});
+Object.assign(PARTS,{
+  e_puerta:{n:"Puerta del panel",d:"Puerta frontal del panel. Detrás está el variador de frecuencia."},
+  e_rej:{n:"Rejilla de ventilación",d:"Rejilla con filtro (marca LOTEC) que deja entrar o salir aire para enfriar el interior."},
+  e_rej2:{n:"Segunda rejilla de ventilación",d:"Rejilla de abajo. Con la de arriba hace circular el aire por dentro del panel."},
+  e_inv:{n:"Anotaciones del panel 1",d:"«B3» escrito a lápiz, el inventario INV. 31030707-1 y el número 1 del panel."},
+  e_num:{n:"Número del panel",d:"Número del panel escrito a mano en la puerta."},
+  e_selb:{n:"Selector Bomba N°1 / Bomba N°2",d:"Selector extra de abajo, con las etiquetas «Bomba N°1» (I) y «Bomba N°2» (D). Parece elegir a cuál bomba alimenta el variador.",pend:1},
+  e_peligro:{n:"Señal de peligro eléctrico",d:"Triángulo amarillo de riesgo eléctrico."},
+  e_qr:{n:"Etiqueta con código QR",d:"Etiqueta con código QR pegada en la puerta."},
+
+  i_danfoss:{n:"Variador Danfoss VLT HVAC Basic Drive",d:"Variador de frecuencia. Regula la velocidad del motor de la bomba. Tiene pantalla naranja y teclado al frente."},
+  i_psu:{n:"Módulo de 63 VA con luz azul",d:"Módulo con la inscripción 63 VA y un LED azul encendido. Parece una fuente o transformador de control.",pend:1},
+  i_rel4:{n:"Cuatro relés",d:"Cuatro relés en riel DIN (etiquetas 02KA1 a 02KA4)."},
+  i_ms116:{n:"Dos guardamotores ABB",d:"Guardamotores ABB MS116 (etiquetas 02QF1 y 02QF2) con perilla negra. Protegen el motor de cada bomba."},
+  i_brk1:{n:"Interruptor y portafusible",d:"Interruptor automático ABB (01QF1) y un portafusible o interruptor pequeño (01F1).",pend:1},
+  i_duct:{n:"Canaleta",d:"Canaleta gris con ranuras, por donde pasan los cables."},
+  i_brk3p:{n:"Breaker tripolar",d:"Interruptor automático (breaker) blanco de 3 polos, junto a la bornera."},
+  i_born:{n:"Bornera",d:"Bornera (regleta de bornes): es donde se conectan los cables negros que llegan al panel. Cada terminal lleva su etiqueta numerada."},
+  i_tierra:{n:"Barra de tierra",d:"Barra metálica donde se conectan los cables de tierra."},
+  i_cables:{n:"Cables de potencia",d:"Cables negros gruesos que suben desde el piso hasta el variador y los demás equipos."},
+  i_placa:{n:"Placa libre",d:"Placa metálica del fondo, sin equipos montados."},
+  i_conectores:{n:"Cables sueltos con conectores",d:"Cables con capuchones amarillos y rosados, en el lado derecho. Parecen de reserva o desconectados.",pend:1},
+  i_rst:{n:"Marcas R, S y T",d:"Marcas de las tres fases de entrada."},
+  i_cond:{n:"Tubo corrugado",d:"Tubo negro flexible por donde sube el cableado."},
+
+  i2_vfdL:{n:"Variador Danfoss (izquierda)",d:"Variador de frecuencia Danfoss VLT HVAC Basic Drive, el de la izquierda."},
+  i2_vfdR:{n:"Variador Danfoss (derecha)",d:"Variador de frecuencia Danfoss VLT HVAC Basic Drive, el de la derecha."},
+  i2_brk1:{n:"Tres interruptores ABB (arriba)",d:"Interruptores automáticos ABB de la parte de arriba del rack."},
+  i2_term:{n:"Equipo pequeño con perilla",d:"Pequeño equipo con una perilla en la parte de arriba del rack. Falta identificarlo (podría ser un termostato).",pend:1},
+  i2_brk2:{n:"Interruptores ABB (medio)",d:"Interruptores automáticos ABB de la parte del medio del rack."},
+  i2_rly:{n:"Relés con base azul",d:"Dos relés con base azul, junto a los interruptores del medio."},
+  i2_nsx:{n:"Interruptor general Schneider",d:"Interruptor de caja moldeada grande, con manija giratoria negra. Parece el interruptor general del panel.",pend:1},
+  i2_bornL:{n:"Borneras (izquierda)",d:"Regleta de bornes de abajo a la izquierda."},
+  i2_bornR:{n:"Borneras (derecha)",d:"Regleta de bornes de abajo a la derecha."},
+  i2_docs:{n:"Manuales",d:"Manuales o documentación guardados en el fondo, a la izquierda."},
+
+  i3_brk4:{n:"Cuatro interruptores ABB",d:"Interruptores automáticos ABB, arriba a la izquierda."},
+  i3_azul:{n:"Módulo azul",d:"Módulo azul montado en riel DIN. Falta identificarlo (relé o temporizador).",pend:1},
+  i3_term:{n:"Termostato",d:"Termostato pequeño, arriba a la derecha. Probablemente maneja el ventilador.",pend:1},
+  i3_brk2:{n:"Dos interruptores ABB",d:"Dos interruptores automáticos ABB en la parte del medio."},
+  i3_rel:{n:"Dos relés",d:"Dos relés con sus bases, en la parte del medio."},
+  i3_rcd:{n:"Dos diferenciales",d:"Interruptores diferenciales, con botón azul de prueba."},
+  i3_vfd:{n:"Variador Danfoss VLT HVAC Basic Drive",d:"Variador de frecuencia montado sobre una placa metálica, a la derecha."},
+  i3_cab:{n:"Cables de colores",d:"Cables azules, marrones, verde-amarillo y rojos que salen del variador hacia las borneras."},
+  i3_doc:{n:"Plano de Vidal",d:"Hoja con el plano o esquema de la empresa Vidal (Automatización y Control), con un código QR, dejada en el fondo del panel."}
+});
+/* ---- Interior de PC-04 y PC-05: piezas por separado, con el grupo al que pertenecen ---- */
+Object.assign(PARTS,{
+  in_puertas:{n:"Puertas abiertas",d:"Cara interior de las dos puertas abiertas del panel."},
+  in_sup:{n:"Compartimento superior",d:"Caja de arriba con puerta transparente. Adentro hay conectores y cableado, que no se dibujan aquí.",pend:1},
+  in_rc_brk:{n:"Interruptor pequeño blanco",d:"Interruptor automático pequeño de 2 polos. Forma parte del riel central, debajo del módulo con luz azul."},
+  in_rc_neg:{n:"Pieza negra con detalle verde",d:"Pieza pequeña negra con un detalle verde. Forma parte del riel central. Falta identificarla.",pend:1},
+  in_rc_gris:{n:"Módulo gris pequeño",d:"Módulo gris al final del riel central. Forma parte del riel central. Falta identificarlo.",pend:1},
+  in_bi1:{n:"Bornera 1 (izquierda)",d:"Tira de bornes para conectar cables. Forma parte de las 2 borneras del lado izquierdo."},
+  in_bi2:{n:"Bornera 2 (izquierda)",d:"Tira de bornes para conectar cables. Forma parte de las 2 borneras del lado izquierdo."},
+  in_bd1:{n:"Bornera 1 (derecha)",d:"Tira de bornes para conectar cables. Forma parte de las 2 borneras del lado derecho."},
+  in_bd2:{n:"Bornera 2 (derecha)",d:"Tira de bornes para conectar cables. Forma parte de las 2 borneras del lado derecho."},
+  in_cont:{n:"Contactor central",d:"Contactor negro en el centro, debajo de la canaleta inferior.",pend:1}
+});
+[["gi","izquierdo"],["gd","derecho"]].forEach(([p,lado])=>{
+  const g="Forma parte del grupo "+lado+", debajo de la canaleta.";
+  PARTS["in_"+p+"_brk"]={n:"Breaker blanco (grupo "+lado+")",d:"Interruptor automático blanco. "+g};
+  PARTS["in_"+p+"_negA"]={n:"Pieza negra con detalle verde 1 (grupo "+lado+")",d:"Primera pieza negra con detalle verde; parece un contactor. "+g,pend:1};
+  PARTS["in_"+p+"_negB"]={n:"Pieza negra con detalle verde 2 (grupo "+lado+")",d:"Segunda pieza negra con detalle verde; parece un guardamotor o relé térmico. "+g,pend:1};
+  PARTS["in_"+p+"_bloque"]={n:"Bloque blanco de conexión (grupo "+lado+")",d:"Bloque blanco con tornillos, encima del módulo gris. "+g,pend:1};
+  PARTS["in_"+p+"_mod"]={n:"Módulo gris con perilla azul (grupo "+lado+")",d:"Módulo gris con una perilla azul. "+g+" Falta identificarlo.",pend:1};
+});
+/* ===================== Vista ampliada del variador Danfoss (paneles 1 a 3) ===================== */
+let inDrive=false;
+const DRIVE_PARTS={i_danfoss:"danfoss",i2_vfdL:"danfoss",i2_vfdR:"danfoss",i3_vfd:"danfoss",in_vfd1:"abb",in_vfd2:"abb"};
+const DRIVE_INFO={danfoss:"Variador Danfoss VLT HVAC Basic Drive",abb:"Variador ABB (serie HVAC)"};
+function activate(g){
+  const k=g.dataset.k;
+  if(!inDrive && DRIVE_PARTS[k]){ showDrive(DRIVE_PARTS[k]); return; }
+  setInfo(k);
+}
+function showDrive(model){
+  inDrive=true;
+  mview.innerHTML=`<div style="width:100%"><button class="mback" type="button">← Volver al panel</button>${DRIVES[model]()}</div>`;
+  minfo.innerHTML=`<h3>${DRIVE_INFO[model]}</h3><p>Variador de frecuencia ampliado. Toca una parte para ver qué es y qué hace.</p>`;
+}
+function viewDanfoss(){
+  const key=(x,y,w,h,t,fs)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#D9DCDF" ${SK} stroke-width="1.2"/>${tx(x+w/2,y+h/2+(fs||7)*0.35,t,fs||7)}`;
+  const rkey=(cx,cy,l1,l2)=>`<circle cx="${cx}" cy="${cy}" r="22" fill="#D9DCDF" ${SK} stroke-width="1.5"/>${tx(cx,l2?cy-2:cy+3,l1,8)}${l2?tx(cx,cy+9,l2,8):""}`;
+  const dot=(cy,on,t)=>`<circle cx="184" cy="${cy}" r="5" fill="${on?"#F2C200":"#555"}"/>${t?tx(196,cy+3,t,8,"#ddd","start"):""}`;
+  return `<svg viewBox="0 0 400 740" role="img" aria-label="Variador Danfoss ampliado">
+    ${pg("dd_cuerpo",[20,20,130,700],`<rect x="20" y="20" width="360" height="700" rx="8" fill="#D7D9DC" ${SK}/><rect x="28" y="28" width="122" height="690" fill="#CDD0D3" stroke="#9AA0A6" stroke-width="1"/>`)}
+    ${pg("dd_tag",[36,38,56,20],stk(38,40,52,16,"02U1",8))}
+    <rect x="150" y="28" width="222" height="690" rx="6" fill="#3A404A" ${SK}/>
+    ${pg("dd_tapa",[160,388,202,296],`<rect x="160" y="388" width="202" height="296" rx="6" fill="#343A44" stroke="#1B1F24" stroke-width="1.5"/>`)}
+    ${pg("dd_serie",[190,500,142,70],tx(261,530,"VLT",30,"#fff")+tx(261,556,"HVAC Basic Drive",14,"#fff"))}
+    ${pg("dd_lcp",[160,38,202,342],`<rect x="160" y="38" width="202" height="342" rx="10" fill="#2B3038" stroke="#1B1F24" stroke-width="1.5"/>`)}
+    ${pg("dd_logo",[268,46,60,20],`<rect x="270" y="48" width="56" height="16" rx="3" fill="#D3222A"/>${tx(298,60,"Danfoss",10,"#fff")}`)}
+    ${pg("dd_pantalla",[172,74,178,54],`<rect x="172" y="74" width="178" height="54" fill="#E8893A" ${SK} stroke-width="1.2"/>${[0,1,2].map(i=>`<rect x="180" y="${84+i*14}" width="${110-i*18}" height="6" fill="#B5651B"/>`).join("")}`)}
+    ${pg("dd_menu",[172,136,41,24],key(172,136,41,24,"Menu",8))}
+    ${pg("dd_status",[217,136,41,24],key(217,136,41,24,"Status",8))}
+    ${pg("dd_quick",[262,136,41,24],key(262,136,41,24,"Quick Menu",6))}
+    ${pg("dd_main",[307,136,41,24],key(307,136,41,24,"Main Menu",6))}
+    ${pg("dd_leds",[174,178,62,92],dot(196,1,"")+dot(218,1,"On")+dot(240,0,"Warn")+dot(262,0,"Alarm"))}
+    ${pg("dd_nav",[224,182,108,108],`<circle cx="278" cy="236" r="54" fill="#CFD2D6" ${SK}/><polygon points="278,196 266,212 290,212" fill="${INK}"/><polygon points="278,276 266,260 290,260" fill="${INK}"/><polygon points="318,236 302,224 302,248" fill="${INK}"/>`)}
+    ${pg("dd_back",[224,224,30,24],key(224,224,30,24,"Back",7))}
+    ${pg("dd_ok",[258,216,40,40],`<circle cx="278" cy="236" r="20" fill="#E9EBED" ${SK}/>${tx(278,240,"OK",10)}`)}
+    ${pg("dd_hand",[181,316,44,44],rkey(203,338,"Hand","On"))}
+    ${pg("dd_off",[239,316,44,44],rkey(261,338,"Off","Reset"))}
+    ${pg("dd_auto",[297,298,44,62],`<circle cx="319" cy="306" r="4.5" fill="#F59E0B"/>${rkey(319,338,"Auto","On")}`)}
+    ${pg("dd_bornes",[158,690,206,24],`<rect x="158" y="690" width="206" height="24" fill="#1D2229" ${SK}/>${[0,1,2].map(i=>`<rect x="${172+i*62}" y="696" width="40" height="12" fill="#3B434D"/>`).join("")}`)}
+  </svg>`;
+}
+const DRIVES={danfoss:viewDanfoss,abb:viewAbb};
+Object.assign(PARTS,{
+  i_danfoss:{n:"Variador Danfoss VLT HVAC Basic Drive",d:"Variador de frecuencia. Regula la velocidad del motor de la bomba. Toca para verlo ampliado."},
+  i2_vfdL:{n:"Variador Danfoss (izquierda)",d:"Variador de frecuencia Danfoss VLT HVAC Basic Drive, el de la izquierda. Toca para verlo ampliado."},
+  i2_vfdR:{n:"Variador Danfoss (derecha)",d:"Variador de frecuencia Danfoss VLT HVAC Basic Drive, el de la derecha. Toca para verlo ampliado."},
+  i3_vfd:{n:"Variador Danfoss VLT HVAC Basic Drive",d:"Variador de frecuencia montado sobre una placa metálica, a la derecha. Toca para verlo ampliado."},
+  dd_cuerpo:{n:"Carcasa del variador",d:"Carcasa gris del variador, a la izquierda del teclado.",pend:1},
+  dd_tag:{n:"Etiqueta 02U1",d:"Código con el que está identificado este variador dentro del panel."},
+  dd_tapa:{n:"Tapa inferior",d:"Tapa del frente. Detrás van los terminales donde se conectan la alimentación, el motor y las señales de control."},
+  dd_serie:{n:"VLT HVAC Basic Drive",d:"Nombre de la serie: variador de frecuencia de Danfoss pensado para bombas y ventiladores (HVAC)."},
+  dd_lcp:{n:"Teclado con pantalla (panel de control local)",d:"Desde aquí se opera y se configura el variador: pantalla, teclas de menú, flechas y teclas de arranque y paro."},
+  dd_logo:{n:"Logo Danfoss",d:"Marca del fabricante."},
+  dd_pantalla:{n:"Pantalla",d:"Pantalla con luz naranja. Muestra qué está haciendo el variador (por ejemplo frecuencia o corriente), los mensajes y los parámetros cuando se configura."},
+  dd_menu:{n:"Tecla Menu",d:"Abre o cambia el menú que se ve en la pantalla.",pend:1},
+  dd_status:{n:"Tecla Status",d:"Muestra la información de funcionamiento actual del variador."},
+  dd_quick:{n:"Tecla Quick Menu",d:"Acceso rápido a los ajustes más usados para poner en marcha el variador."},
+  dd_main:{n:"Tecla Main Menu",d:"Acceso a todos los parámetros del variador (configuración completa)."},
+  dd_leds:{n:"Luces indicadoras",d:"Luces a la izquierda de las flechas: On (alimentación), Warn (advertencia) y Alarm (alarma). En la foto hay luces amarillas encendidas; falta confirmar cuál corresponde a cuál.",pend:1},
+  dd_nav:{n:"Flechas",d:"Sirven para moverse por los menús y subir o bajar los valores."},
+  dd_back:{n:"Tecla Back",d:"Vuelve al paso anterior del menú."},
+  dd_ok:{n:"Tecla OK",d:"Confirma la opción o el valor elegido."},
+  dd_hand:{n:"Tecla Hand On",d:"Arranca el motor en modo manual, desde el propio teclado."},
+  dd_off:{n:"Tecla Off/Reset",d:"Detiene el motor y borra las alarmas (reset)."},
+  dd_auto:{n:"Tecla Auto On",d:"Deja el variador en automático: obedece las órdenes externas del panel. La luz naranja de arriba indica que está activo; en la foto está encendida."},
+  dd_bornes:{n:"Entrada de cables",d:"Parte de abajo del variador, por donde entran los cables de alimentación, del motor y de control (no se dibujan)."}
+});
+/* ===================== Vista ampliada del variador ABB (paneles 4 y 5) ===================== */
+function viewAbb(){
+  const key=(x,y,w,h,r)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r||6}" fill="#F1EFE8" ${SK} stroke-width="1.2"/>`;
+  const tri=(cx,cy,d)=>{const a=6;const pts={up:`${cx},${cy-a} ${cx-a},${cy+a*0.6} ${cx+a},${cy+a*0.6}`,down:`${cx},${cy+a} ${cx-a},${cy-a*0.6} ${cx+a},${cy-a*0.6}`,left:`${cx-a},${cy} ${cx+a*0.6},${cy-a} ${cx+a*0.6},${cy+a}`,right:`${cx+a},${cy} ${cx-a*0.6},${cy-a} ${cx-a*0.6},${cy+a}`}[d];return `<polygon points="${pts}" fill="${INK}"/>`;};
+  const qr=Array.from({length:16},(_,i)=>((i*7)%3===0||i%5===0)?`<rect x="${53+(i%4)*9}" y="${693+Math.floor(i/4)*9}" width="7" height="7" fill="#222"/>`:"").join("");
+  return `<svg viewBox="0 0 400 780" role="img" aria-label="Variador ABB ampliado">
+    ${pg("da_cuerpo",[30,20,340,740],`<rect x="30" y="20" width="340" height="740" rx="8" fill="#E9E7E0" ${SK}/><rect x="40" y="30" width="175" height="720" fill="#EFEDE6" stroke="#B8B5AB" stroke-width="1"/><path d="M118 36 L118 340 L222 380" fill="none" stroke="#B8B5AB" stroke-width="1.5"/>`)}
+    ${pg("da_logo",[50,48,100,46],tx(100,86,"ABB",40,"#D8243B"))}
+    ${pg("da_mg11",[225,34,100,34],`<text x="232" y="58" font-size="18" font-style="italic" fill="#444">MG11</text>`)}
+    ${pg("da_panel",[196,78,134,250],`<rect x="196" y="78" width="134" height="250" rx="16" fill="#F4F2EC" ${SK}/>`)}
+    ${pg("da_pantalla",[204,96,118,76],`<rect x="204" y="96" width="118" height="76" fill="#1F2327" ${SK} stroke-width="1.5"/><path d="M212 104 L240 104 L212 128 Z" fill="#fff" opacity=".07"/><ellipse cx="240" cy="148" rx="8" ry="6" fill="#E0323C"/>`)}
+    ${pg("da_sk_izq",[205,180,50,20],key(205,180,50,20,9)+`<path d="M214 192 H236 L244 187" fill="none" stroke="${INK}" stroke-width="1.5"/>`)}
+    ${pg("da_sk_der",[268,180,50,20],key(268,180,50,20,9)+`<path d="M276 187 L284 192 H306" fill="none" stroke="${INK}" stroke-width="1.5"/>`)}
+    ${pg("da_up",[252,203,22,20],key(252,203,22,20,5)+tri(263,213,"up"))}
+    ${pg("da_down",[252,243,22,20],key(252,243,22,20,5)+tri(263,253,"down"))}
+    ${pg("da_left",[229,223,22,20],key(229,223,22,20,5)+tri(240,233,"left"))}
+    ${pg("da_right",[275,223,22,20],key(275,223,22,20,5)+tri(286,233,"right"))}
+    ${pg("da_help",[303,213,16,40],key(303,213,16,40,5)+tx(311,238,"?",11))}
+    ${pg("da_led",[200,214,12,10],`<rect x="203" y="218" width="6" height="4" fill="#2A2A2A"/>`)}
+    ${pg("da_off",[206,262,40,28],key(206,262,40,28,8)+`<circle cx="226" cy="272" r="7" fill="none" stroke="#D23B2E" stroke-width="2"/><rect x="223" y="269" width="6" height="6" fill="#D23B2E"/>`+tx(226,287,"Off",7,"#D23B2E"))}
+    ${pg("da_auto",[250,266,34,22],key(250,266,34,22,6)+tx(267,281,"Auto",8))}
+    ${pg("da_hand",[288,262,38,28],key(288,262,38,28,8)+`<polygon points="307,265 313,271 307,277 301,271" fill="none" stroke="#2E9E5B" stroke-width="2"/>`+tx(307,287,"Hand",7))}
+    ${pg("da_usb",[246,296,42,28],`<path d="M246 296 L288 296 L280 322 L254 322 Z" fill="#F4F2EC" ${SK}/>${tx(267,314,"USB",7)}`)}
+    ${pg("da_icono",[248,396,44,64],[0,1,2].map(i=>`<path d="M${257+i*10} 428 q-4 -8 0 -14 q4 -6 0 -14" fill="none" stroke="#2B4F8A" stroke-width="2"/>`).join("")+`<path d="M254 448 h36 M272 440 v16 M259 441 l26 14 M285 441 l-26 14" stroke="#2B4F8A" stroke-width="1.8"/>`)}
+    ${pg("da_hvac",[246,482,60,18],`<rect x="246" y="482" width="60" height="18" rx="2" fill="#3E63A8"/>${tx(276,495,"HVAC",12,"#fff")}`)}
+    ${pg("da_peligro",[246,560,58,52],`<polygon points="275,562 303,610 247,610" fill="#F2C200" ${SK}/>${tx(275,604,"⚡",20)}`)}
+    ${pg("da_rejillas",[236,650,116,60],[0,1,2].map(i=>`<rect x="240" y="${652+i*18}" width="108" height="12" rx="2" fill="#DAD7CC" ${SK} stroke-width="1"/>`).join(""))}
+    ${pg("da_qr",[50,690,44,44],`<rect x="50" y="690" width="44" height="44" fill="#fff" stroke="#9AA0A6"/>${qr}`)}
+    ${pg("da_vf1",[318,728,44,22],stk(320,730,40,18,"VF1",9))}
+  </svg>`;
+}
+Object.assign(PARTS,{
+  in_vfd1:{n:"Variador ABB de la serie HVAC (izquierda)",d:"Regula la velocidad del motor de una bomba. Tiene pantalla y teclado al frente y la entrada de cables por abajo. Toca para verlo ampliado.",pend:1},
+  in_vfd2:{n:"Variador ABB de la serie HVAC (derecha)",d:"Igual al de la izquierda. Regula la velocidad del motor de una bomba. Toca para verlo ampliado.",pend:1},
+  in_rele:{n:"Fuente Polylux de 40 VA",d:"Módulo con la inscripción POLYLUX 40 VA y un LED azul encendido, entre los dos variadores. Parece una fuente o transformador de control."},
+  i_psu:{n:"Fuente de 63 VA con luz azul",d:"Módulo con la inscripción 63 VA y un LED azul encendido. La marca parece ser Polylux, igual que el de PC-04 y PC-05 (que dice 40 VA). Parece una fuente o transformador de control.",pend:1},
+  in_rc_qm:{n:"Interruptor QM (riel central)",d:"Interruptor automático pequeño marca Schneider, con la etiqueta QM. Forma parte del riel central, debajo de la fuente."},
+  in_rc_fm:{n:"Interruptor FM (riel central)",d:"Interruptor pequeño con la etiqueta FM, junto al QM. Forma parte del riel central."},
+  in_rc_k1:{n:"Relé K1 (riel central)",d:"Relé con su base negra y un detalle verde, con la etiqueta K1. Forma parte del riel central."},
+  in_rc_k2:{n:"Relé K2 (riel central)",d:"Relé con su base negra y un detalle verde, con la etiqueta K2. Forma parte del riel central."},
+  da_cuerpo:{n:"Carcasa del variador",d:"Carcasa clara del variador, con la tapa escalonada del frente."},
+  da_logo:{n:"Logo ABB",d:"Marca del fabricante: ABB."},
+  da_mg11:{n:"Anotación «MG11»",d:"Texto escrito a mano en la parte de arriba del variador. Parece una identificación; falta confirmar qué significa.",pend:1},
+  da_panel:{n:"Panel de control del variador",d:"Teclado con pantalla. Desde aquí se opera y se configura el variador: pantalla, teclas de función, flechas, ayuda y teclas Off, Auto y Hand."},
+  da_pantalla:{n:"Pantalla",d:"Muestra el estado del variador, los menús, los valores y los mensajes de advertencia o falla. En la foto se ve una marca roja que no se alcanza a leer.",pend:1},
+  da_sk_izq:{n:"Tecla de función izquierda",d:"Su función cambia según lo que diga la esquina inferior izquierda de la pantalla (por ejemplo salir o volver)."},
+  da_sk_der:{n:"Tecla de función derecha",d:"Su función cambia según lo que diga la esquina inferior derecha de la pantalla (por ejemplo abrir el menú o elegir opciones)."},
+  da_up:{n:"Flecha arriba",d:"Sube por las listas o aumenta el valor que se está cambiando."},
+  da_down:{n:"Flecha abajo",d:"Baja por las listas o reduce el valor que se está cambiando."},
+  da_left:{n:"Flecha izquierda",d:"Normalmente sirve para retroceder o moverse hacia la izquierda en un valor."},
+  da_right:{n:"Flecha derecha",d:"Normalmente sirve para avanzar o moverse hacia la derecha en un valor."},
+  da_help:{n:"Tecla de ayuda (?)",d:"Muestra un texto de ayuda sobre lo que se ve en la pantalla."},
+  da_led:{n:"Luz de estado",d:"Pequeña luz del panel que indica el estado del variador. En la foto no se distingue encendida.",pend:1},
+  da_off:{n:"Tecla Off",d:"Detiene el variador y, con eso, el motor de la bomba."},
+  da_auto:{n:"Tecla Auto",d:"Deja el variador en automático: obedece las órdenes externas del panel."},
+  da_hand:{n:"Tecla Hand",d:"Arranca el variador en modo manual, desde el propio panel."},
+  da_usb:{n:"Puerto USB",d:"Debajo del panel. Normalmente sirve para conectar una computadora al variador (por ejemplo para configurarlo o copiar ajustes).",pend:1},
+  da_icono:{n:"Símbolo de calor y frío",d:"Símbolo de la gama HVAC: calefacción, ventilación y aire acondicionado."},
+  da_hvac:{n:"Insignia HVAC",d:"Indica que es la versión del variador para climatización, bombas y ventiladores (HVAC)."},
+  da_peligro:{n:"Aviso de peligro eléctrico",d:"Triángulo amarillo: hay tensión peligrosa. No se debe abrir con el equipo energizado."},
+  da_rejillas:{n:"Rejillas de ventilación",d:"Ranuras de abajo a la derecha, por donde circula el aire para enfriar el variador."},
+  da_qr:{n:"Código QR",d:"Etiqueta con código QR del fabricante. Normalmente lleva a información del equipo, como manuales."},
+  da_vf1:{n:"Etiqueta VF1",d:"Código con el que está identificado este variador (VF1)."}
+});
+/* ===================== PGD – panel 1 (primera puerta de derecha a izquierda, de frente al PGD) ===================== */
+const PGD_SETS=[
+  {s:"a",tag:"Bomba A. Fría 1 · C. Secundario 3 · BF-CS-211",l1:"BOMBA A. FRIA 1",l2:"C. SECUNDARIO 3 BF-CS-211",x0:20,y0:70},
+  {s:"b",tag:"Bomba A. Fría 2 · C. Secundario 1 · BF-CS-212",l1:"BOMBA A. FRIA 2",l2:"C. SECUNDARIO 1 BF-CS-212",x0:215,y0:70},
+  {s:"c",tag:"Bomba A. Fría 1 · C. Secundario 3 · BF-CS-221",l1:"BOMBA A. FRIA 1",l2:"C. SECUNDARIO 3 BF-CS-221",x0:20,y0:240},
+  {s:"d",tag:"Bomba A. Fría 2 · C. Secundario 2 · BF-CS-222",l1:"BOMBA A. FRIA 2",l2:"C. SECUNDARIO 2 BF-CS-222",x0:215,y0:240}
+];
+PGD_SETS.forEach(o=>{
+  const f=o.l1+" / "+o.l2;
+  PARTS["x_rot_"+o.s]={n:"Rótulo de "+o.tag,d:"Etiqueta que dice «"+f+"». Identifica la bomba que maneja este grupo de mandos. El código BF-CS parece querer decir bomba fría, circuito secundario.",pend:1};
+  PARTS["x_man_"+o.s]={n:"Selector MAN-O-AUT ("+o.tag+")",d:"Selector de 3 posiciones de esta bomba: Manual – 0 (apagada) – Automático."};
+  PARTS["x_nor_"+o.s]={n:"Selector NOR-EMER ("+o.tag+")",d:"Selector Normal – Emergencia. Parece elegir si la bomba funciona con la alimentación normal o con la de emergencia.",pend:1};
+  PARTS["x_ver_"+o.s]={n:"Luz verde ("+o.tag+")",d:"Luz verde de este grupo. Normalmente indica que la bomba está en marcha; la etiqueta no la nombra.",pend:1};
+  PARTS["x_rojo_"+o.s]={n:"Luz roja ("+o.tag+")",d:"Luz roja de este grupo. Normalmente indica falla o disparo de una protección; la etiqueta no la nombra.",pend:1};
+});
+Object.assign(PARTS,{
+  x_puerta:{n:"Puerta del PGD (panel 1)",d:"Primera puerta del PGD contando de derecha a izquierda, de frente al PGD."},
+  x_oeste:{n:"Rótulo OESTE",d:"Marca la fila de arriba de mandos (dos bombas).",pend:1},
+  x_este:{n:"Rótulo ESTE",d:"Marca la fila de abajo de mandos (dos bombas).",pend:1},
+  x_manija:{n:"Manija Schneider Electric",d:"Manija de la puerta del tablero, marca Schneider Electric. Sirve para abrir y cerrar la puerta."},
+  d_puerta:{n:"Parte de atrás de la puerta",d:"Cara interior de la puerta del PGD. Aquí van montados, por detrás, los bloques de los selectores y las luces del frente."},
+  d_pegatina:{n:"Etiqueta de Schneider Electric",d:"Etiqueta del fabricante con las instrucciones de montaje del tablero."}
+});
+const PGD_GRUPOS=[["g1","arriba a la izquierda",5,60,195],["g2","arriba a la derecha",4,245,175],["g3","abajo a la izquierda",5,60,325],["g4","abajo a la derecha",4,245,305]];
+PGD_GRUPOS.forEach(([g,nom,n])=>{ for(let i=1;i<=n;i++) PARTS["d_"+g+"_b"+i]={n:"Bloque "+i+" ("+nom+")",d:"Bloque de contactos o portalámpara conectado detrás de un mando del frente (selector o luz). Forma parte del grupo de "+nom+", visto desde atrás; desde atrás quedan en espejo respecto al frente. Falta identificar a cuál mando corresponde.",pend:1}; });
+
+function outPgd1(){
+  const t2=(x,y,w,h,a,b)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#9AA0A6" stroke-width=".8"/>${tx(x+w/2,y+h/2-1,a,6.5)}${tx(x+w/2,y+h/2+8,b,6.5)}`;
+  const set=o=>{const x0=o.x0,y0=o.y0,cy=y0+90;
+    return pg("x_rot_"+o.s,[x0+4,y0,157,32],t2(x0+6,y0,153,30,o.l1,o.l2))
+     +pg("x_man_"+o.s,[x0,y0+40,46,70],stk(x0,y0+42,46,16,"MAN-O-AUT",6)+knob(x0+23,cy,16))
+     +pg("x_nor_"+o.s,[x0+50,y0+40,46,70],stk(x0+50,y0+42,46,16,"NOR-EMER",6)+knob(x0+73,cy,16))
+     +pg("x_ver_"+o.s,[x0+98,y0+64,32,46],pilot(x0+114,cy,"#1E8E6B",14))
+     +pg("x_rojo_"+o.s,[x0+134,y0+64,32,46],pilot(x0+150,cy,"#E4584B",14));};
+  return `<svg viewBox="0 0 400 640" role="img" aria-label="Frente del PGD, panel 1">
+    ${pg("x_puerta",[10,10,380,620],`<rect x="10" y="10" width="380" height="620" rx="6" fill="#DAD7D1" ${SK}/>`)}
+    ${PGD_SETS.map(set).join("")}
+    ${pg("x_oeste",[170,32,60,26],stk(172,36,56,18,"OESTE",9))}
+    ${pg("x_este",[170,202,60,26],stk(172,206,56,18,"ESTE",9))}
+    ${pg("e_peligro",[160,430,80,66],`<polygon points="200,434 238,494 162,494" fill="#F2C200" ${SK}/>${tx(200,486,"⚡",24)}`)}
+    ${pg("x_manija",[22,500,36,116],`<rect x="26" y="504" width="28" height="108" rx="6" fill="#22282E" ${SK}/><text x="44" y="560" font-size="9" fill="#fff" text-anchor="middle" transform="rotate(-90 44 560)">Schneider Electric</text>`)}
+  </svg>`;
+}
+function doorPgd1(){
+  const colores=["#1E8E6B","#E4584B","#8D9296","#1E8E6B","#2A3036"];
+  const bloque=(x,y,w,h,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#2A3036" ${SK} stroke-width="1.2"/><rect x="${x+w*0.3}" y="${y+h*0.25}" width="${w*0.4}" height="${h*0.2}" fill="${c}"/>`;
+  const grupo=([g,nom,n,x0,y0])=>Array.from({length:n},(_,i)=>pg("d_"+g+"_b"+(i+1),[x0+i*27,y0,22,46],bloque(x0+i*27,y0,22,46,colores[i%colores.length]))).join("");
+  return `<svg viewBox="0 0 400 640" role="img" aria-label="Parte de atrás de la puerta del PGD, panel 1">
+    ${pg("d_puerta",[10,10,380,620],`<rect x="10" y="10" width="380" height="620" rx="6" fill="#C9CCCF" ${SK}/><rect x="30" y="30" width="340" height="580" fill="#BFC3C6" stroke="#8D9296" stroke-width="1.5"/>`)}
+    ${pg("d_pegatina",[100,120,110,62],`<rect x="100" y="120" width="110" height="62" fill="#fff" stroke="#9AA0A6"/><path d="M110 168 l12 -14 l8 8 z" fill="#2E9E5B"/>${tx(165,172,"Schneider Electric",8,"#2E9E5B")}`)}
+    ${PGD_GRUPOS.map(grupo).join("")}
+  </svg>`;
+}
+function inPgd1(){
+  const C=(x,y,w,h,l)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#EDEBE6" ${SK}/><rect x="${x}" y="${y}" width="${w}" height="${h*0.24}" fill="#2A3036"/><rect x="${x+w*0.18}" y="${y+h*0.42}" width="${w*0.64}" height="${h*0.2}" fill="#C9CCD0" stroke="#8D9296" stroke-width=".8"/>${l?tx(x+w/2,y+h*0.9,l,7,"#444"):""}`;
+  const N=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#3A3F46" ${SK}/><rect x="${x+w*0.18}" y="${y+h*0.12}" width="${w*0.64}" height="${h*0.16}" fill="#E8E8EA"/><rect x="${x+w*0.38}" y="${y+h*0.36}" width="${w*0.24}" height="${h*0.28}" fill="#0F1114"/><rect x="${x+w*0.15}" y="${y+h*0.72}" width="${w*0.7}" height="${h*0.1}" fill="#B03A8A"/>`;
+  const SL=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/><rect x="${x+w*0.2}" y="${y+h*0.15}" width="${w*0.6}" height="${h*0.12}" fill="#9AA0A6"/>`;
+  const TM=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#EDEBE6" ${SK}/><circle cx="${x+w/2}" cy="${y+h*0.38}" r="${w*0.32}" fill="#fff" ${SK} stroke-width="1.4"/><line x1="${x+w/2}" y1="${y+h*0.38}" x2="${x+w/2+w*0.18}" y2="${y+h*0.26}" stroke="${INK}" stroke-width="1.6"/>`;
+  const RT=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#4A4F57" ${SK}/><circle cx="${x+w*0.35}" cy="${y+h*0.5}" r="${h*0.22}" fill="#D23B2E"/>`;
+  const MN=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/><rect x="${x+w*0.3}" y="${y+h*0.38}" width="${w*0.4}" height="${h*0.22}" fill="#2A3036"/>`;
+  const BK=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#2A3036" ${SK}/>${[[0.3,0.3],[0.7,0.3],[0.3,0.6],[0.7,0.6]].map(([a,b])=>`<circle cx="${x+w*a}" cy="${y+h*b}" r="2" fill="#fff"/>`).join("")}`;
+  const BR=(x,y,w,h)=>bornRaw(x,y,w,h);
+  const BG=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#B8BCC0" ${SK}/>`+Array.from({length:Math.floor(w/8)-1},(_,c)=>`<line x1="${x+(c+1)*8}" y1="${y+3}" x2="${x+(c+1)*8}" y2="${y+h-3}" stroke="${INK}" stroke-width=".8"/>`).join("");
+  const BW=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3F2EE" ${SK}/>`+Array.from({length:Math.floor(w/8)-1},(_,c)=>`<line x1="${x+(c+1)*8}" y1="${y+3}" x2="${x+(c+1)*8}" y2="${y+h-3}" stroke="${INK}" stroke-width=".8"/>`).join("");
+  const F={C,N,SL,TM,RT,MN,BK,BR,BG,BW};
+  const shelf=y=>`<rect x="20" y="${y}" width="460" height="10" fill="#8F9499" stroke="#6D7277" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 500 860" role="img" aria-label="Interior del PGD, panel 1">
+    <rect x="10" y="10" width="480" height="840" rx="6" fill="#BFC3C6" ${SK}/>
+    <rect x="20" y="118" width="460" height="700" fill="#AEB3B7" stroke="#8D9296" stroke-width="1"/>
+    ${[128,238,352,500,622,732].map(shelf).join("")}
+    ${PGD1_SPECS.map(o=>pg(o.k,[o.x,o.y,o.w,o.h],o.f==="SUP"?`<rect x="20" y="20" width="460" height="95" fill="#2B3036" ${SK}/><rect x="28" y="28" width="444" height="80" fill="#343B43"/>`:o.f==="BARRAS"?[0,1,2,3,4,5].map(i=>`<rect x="${60+i*68}" y="32" width="9" height="76" fill="#B87333" stroke="#6B4220" stroke-width="1"/><circle cx="${64+i*68}" cy="44" r="4" fill="#6B4220"/>`).join(""):o.f==="PELIGRO"?`<polygon points="250,28 276,74 224,74" fill="#F2C200" ${SK}/>${tx(250,68,"⚡",18)}`:F[o.f](o.x,o.y,o.w,o.h,o.label))).join("")}
+  </svg>`;
+}
+const PGD1_SPECS=[];
+function addP(k,f,x,y,w,h,n,d,pend,label){ PGD1_SPECS.push({k,f,x,y,w,h,label}); PARTS[k]={n,d,pend}; }
+(function(){
+  const fila=(n)=>" Forma parte de la fila "+n+" del tablero, contando desde arriba.";
+  addP("g_sup","SUP",20,20,460,95,"Compartimento superior","Parte de arriba del tablero, con cubierta transparente. Adentro están las barras de cobre y el aviso de peligro. No se dibujan sus cables.");
+  addP("g_barras","BARRAS",55,30,400,80,"Barras de cobre","Barras de cobre con aisladores bajo la cubierta transparente. Parecen distribuir la corriente principal a los interruptores de abajo.",1);
+  addP("g_peligro","PELIGRO",224,26,54,50,"Aviso de peligro eléctrico","Triángulo amarillo: hay tensión peligrosa. No se debe abrir con el equipo energizado.");
+  for(let i=0;i<4;i++) addP("g_nsx"+(i+1),"N",30+i*95,135,88,90,"Interruptor de caja moldeada "+(i+1),"Interruptor automático de caja moldeada marca Schneider. Protege y corta la alimentación de un circuito."+fila(1));
+  addP("g_mini","MN",430,150,28,62,"Interruptor pequeño blanco","Interruptor automático pequeño Schneider de 2 polos, montado en un riel a la derecha."+fila(1));
+  const l2=["KM6A","KM7A","","","KM7C"];
+  for(let i=0;i<5;i++) addP("g_c2_"+(i+1),"C",28+i*78,252,72,88,"Contactor "+(i+1)+" (fila 2)","Contactor: interruptor accionado eléctricamente que arranca o para un motor (por ejemplo de una bomba). "+(l2[i]?"Etiqueta legible: "+l2[i]+".":"La etiqueta no se alcanza a leer.")+fila(2),0,l2[i]);
+  addP("g_born2","BR",428,262,50,60,"Bornera (fila 2)","Bornera: regleta de bornes donde se conectan cables."+fila(2));
+  addP("g_s31","SL",28,370,20,78,"Módulo delgado blanco 1 (fila 3)","Módulo delgado blanco; parece un relé o una interfaz. Falta identificarlo."+fila(3),1);
+  addP("g_s32","SL",52,370,20,78,"Módulo delgado blanco 2 (fila 3)","Módulo delgado blanco; parece un relé o una interfaz. Falta identificarlo."+fila(3),1);
+  addP("g_k3","BK",78,378,26,50,"Módulo pequeño negro (fila 3)","Módulo pequeño negro con terminales. Falta identificarlo."+fila(3),1);
+  addP("g_t3","TM",110,372,46,70,"Temporizador (fila 3)","Bloque con una perilla redonda; parece un temporizador, que retrasa una acción. Falta confirmarlo."+fila(3),1);
+  addP("g_c31","C",172,368,72,82,"Contactor 1 (fila 3)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(3));
+  addP("g_c32","C",256,368,72,82,"Contactor 2 (fila 3)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(3));
+  addP("g_rt3","RT",180,456,44,30,"Relé térmico (fila 3)","Relé térmico, debajo del contactor 1 de esta fila. Parece proteger el motor contra sobrecarga."+fila(3),1);
+  const l4=["","KM10A","KM11A","","",""];
+  for(let i=0;i<6;i++) addP("g_c4_"+(i+1),"C",24+i*74,512,68,92,"Contactor "+(i+1)+" (fila 4)","Contactor: interruptor accionado eléctricamente que arranca o para un motor. "+(l4[i]?"Etiqueta legible: "+l4[i]+".":"La etiqueta no se alcanza a leer.")+fila(4),0,l4[i]);
+  addP("g_s51","SL",24,632,20,80,"Módulo delgado blanco 1 (fila 5)","Módulo delgado blanco; parece un relé o una interfaz. Falta identificarlo."+fila(5),1);
+  addP("g_s52","SL",48,632,20,80,"Módulo delgado blanco 2 (fila 5)","Módulo delgado blanco; parece un relé o una interfaz. Falta identificarlo."+fila(5),1);
+  addP("g_r51","MN",76,640,22,58,"Relé pequeño 1 (fila 5)","Relé pequeño con su base."+fila(5),1);
+  addP("g_r52","MN",102,640,22,58,"Relé pequeño 2 (fila 5)","Relé pequeño con su base."+fila(5),1);
+  addP("g_t51","TM",132,636,44,70,"Temporizador 1 (fila 5)","Bloque con una perilla redonda; parece un temporizador. Falta confirmarlo."+fila(5),1);
+  addP("g_c51","C",184,632,56,88,"Contactor 1 (fila 5)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(5));
+  addP("g_c52","C",246,632,56,88,"Contactor 2 (fila 5)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(5));
+  addP("g_t52","TM",308,636,40,70,"Temporizador 2 (fila 5)","Bloque con una perilla redonda; parece un temporizador. Falta confirmarlo."+fila(5),1);
+  addP("g_c53","C",354,632,56,88,"Contactor 3 (fila 5)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(5));
+  addP("g_c54","C",416,632,56,88,"Contactor 4 (fila 5)","Contactor: interruptor accionado eléctricamente que arranca o para un motor."+fila(5));
+  addP("g_bg","BG",24,760,200,50,"Borneras grises (abajo)","Regletas de bornes grises, abajo a la izquierda, donde se conectan los cables que salen del tablero.");
+  addP("g_bw","BW",232,752,240,58,"Borneras blancas (abajo)","Regletas de bornes blancas, abajo a la derecha, donde se conectan los cables que salen del tablero.");
+})();
+PANELS["PGD-1"]={out:outPgd1,door:doorPgd1,inn:inPgd1,labels:{out:"Frente de la puerta (rótulos y mandos de 4 bombas).",door:"Parte de atrás de la puerta: los bloques que van detrás de los mandos.",in:"Interior de esta sección del PGD, fila por fila de arriba hacia abajo."}};
+</script>
+</body>
+</html>
